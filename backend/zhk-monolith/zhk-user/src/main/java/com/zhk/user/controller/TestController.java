@@ -6,6 +6,10 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.zhk.common.web.Result;
+import java.util.HashMap;
+import java.util.Map;
+
 /**
  * 临时测试控制器（仅用于开发环境）
  * 用于生成密码哈希
@@ -26,6 +30,18 @@ public class TestController {
             "UPDATE user SET password = '%s' WHERE mobile IN ('13800000001', '13800000002', '13800000003');",
             password, hash, hash
         );
+    }
+
+    /**
+     * 健康检查端点
+     */
+    @GetMapping("/health")
+    public Result<Map<String, Object>> health() {
+        Map<String, Object> health = new HashMap<>();
+        health.put("status", "UP");
+        health.put("service", "zhk-user");
+        health.put("timestamp", System.currentTimeMillis());
+        return Result.success(health);
     }
 }
 

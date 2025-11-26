@@ -1,37 +1,13 @@
 # Zeabur 部署配置文件
 # 参考文档: https://zeabur.com/docs
 
-# 构建配置
 build:
-  # 使用 Maven 构建
   type: maven
-  # 构建命令
   buildCommand: cd backend && mvn clean package -DskipTests
-  # 输出目录（Spring Boot 打包后的 JAR 文件位置）
   outputDirectory: backend/zhk-monolith/zhk-user/target
 
-# 运行配置
 run:
-  # 运行命令
   command: java -jar backend/zhk-monolith/zhk-user/target/zhk-user-1.0.0-SNAPSHOT.jar
-  # 工作目录
-  workdir: /
 
-# 环境变量（这些可以在 Zeabur 控制台中配置，不需要硬编码）
-# env:
-#   - MYSQL_HOST=mysql2.sqlpub.com
-#   - MYSQL_PORT=3307
-#   - MYSQL_DATABASE=zuhaoku
-#   - MYSQL_USER=shigure2
-#   - MYSQL_PASSWORD=NVxtg0a9HYU5i62K
-
-# 端口配置
 port: 8080
-
-# 健康检查
-healthcheck:
-  path: /actuator/health
-  interval: 30s
-  timeout: 10s
-  retries: 3
 

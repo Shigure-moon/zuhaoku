@@ -47,6 +47,8 @@ public class SecurityConfig {
             .authorizeHttpRequests(auth -> auth
                 // 公开接口（无需认证）
                 .requestMatchers(
+                    "/",
+                    "/health",
                     "/api/v1/users/login",
                     "/api/v1/users/register",
                     "/api/v1/test/**",
