@@ -64,8 +64,8 @@ USER spring:spring
 # 设置工作目录
 WORKDIR /app
 
-# 从构建阶段复制 JAR 文件
-COPY --from=builder /app/backend/zhk-monolith/zhk-user/target/zhk-user-*.jar app.jar
+# 从构建阶段复制 JAR 文件（使用精确路径）
+COPY --from=builder --chown=spring:spring /app/backend/zhk-monolith/zhk-user/target/zhk-user-1.0.0-SNAPSHOT.jar app.jar
 
 # 暴露端口
 EXPOSE 8080
