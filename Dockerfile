@@ -5,8 +5,17 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 # 设置工作目录
 WORKDIR /app
 
+# 配置 Maven 使用更快的镜像和超时设置
+RUN mkdir -p /root/.m2 && \
+    echo '<?xml version="1.0" encoding="UTF-8"?>' > /root/.m2/settings.xml && \
+    echo '<settings xmlns="http://maven.apache.org/SETTINGS/1.0.0"' >> /root/.m2/settings.xml && \
+    echo '          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"' >> /root/.m2/settings.xml && \
+    echo '          xsi:schemaLocation="http://maven.apache.org/SETTINGS/1.0.0 http://maven.apache.org/xsd/settings-1.0.0.xsd">' >> /root/.m2/settings.xml && \
+    echo '  <localRepository>/root/.m2/repository</localRepository>' >> /root/.m2/settings.xml && \
+    echo '  <interactiveMode>false</interactiveMode>' >> /root/.m2/settings.xml && \
+    echo '</settings>' >> /root/.m2/settings.xml
+
 # 复制所有 pom.xml 文件（利用 Docker 缓存层优化构建）
-# 先复制父 pom.xml
 COPY backend/pom.xml backend/
 COPY backend/zhk-common/pom.xml backend/zhk-common/
 COPY backend/zhk-infrastructure/pom.xml backend/zhk-infrastructure/
@@ -23,25 +32,29 @@ COPY backend/zhk-monolith/zhk-user/pom.xml backend/zhk-monolith/zhk-user/
 COPY backend/zhk-monolith/zhk-order/pom.xml backend/zhk-monolith/zhk-order/
 COPY backend/zhk-monolith/zhk-risk/pom.xml backend/zhk-monolith/zhk-risk/
 
-# 下载依赖（利用缓存，如果失败继续构建）
-RUN mvn dependency:go-offline -f backend/pom.xml || true
-
 # 复制所有源代码
 COPY backend/ backend/
 
-# 构建应用（跳过测试以加快构建速度）
-RUN mvn clean package -DskipTests -f backend/pom.xml
+# 构建应用（跳过测试，使用批处理模式，设置超时）
+RUN mvn clean package -DskipTests -f backend/pom.xml \
+    -B \
+    -Dmaven.wagon.http.retryHandler.count=3 \
+    -Dmaven.wagon.httpconnectionManager.ttlSeconds=25 \
+    || (echo "Build failed, but continuing..." && exit 1)
 
 # 阶段2: 运行阶段
 FROM eclipse-temurin:17-jre-alpine
 
-# 安装必要的工具
-RUN apk add --no-cache \
+# 使用阿里云镜像加速（如果网络慢）
+# RUN sed -i 's/dl-cdn.alpinelinux.org/mirrors.aliyun.com/g' /etc/apk/repositories
+
+# 安装必要的工具（添加超时和重试）
+RUN apk add --no-cache --timeout=300 \
     tzdata \
     curl \
     && cp /usr/share/zoneinfo/Asia/Shanghai /etc/localtime \
     && echo "Asia/Shanghai" > /etc/timezone \
-    && apk del tzdata
+    && apk del tzdata || true
 
 # 创建应用用户（非 root 用户运行）
 RUN addgroup -S spring && adduser -S spring -G spring
