@@ -1,0 +1,74 @@
+# Git
+.git
+.gitignore
+.gitattributes
+
+# IDE
+.idea
+.vscode
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings
+bin
+
+# Maven
+backend/**/target
+backend/**/.mvn
+backend/**/mvnw
+backend/**/mvnw.cmd
+
+# 编译输出
+*.class
+*.jar
+*.war
+*.ear
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+
+# 文档
+*.md
+!README.md
+docs/
+diagrams/
+
+# 前端
+frontend/
+node_modules/
+dist/
+build/
+
+# Docker
+docker-compose*.yml
+Dockerfile*
+.dockerignore
+
+# 环境变量文件
+.env
+.env.local
+.env.*.local
+
+# 敏感文件
+**/alipay-keys/
+**/wechat-keys/
+**/*secret*.yml
+**/*secret*.yaml
+**/*secret*.properties
+*.pem
+*.key
+
+# 其他
+C4-PlantUML/
+*.docx
+zuhaoku.docx
+

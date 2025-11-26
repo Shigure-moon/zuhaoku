@@ -1,13 +1,10 @@
 # Zeabur 部署配置文件
 # 参考文档: https://zeabur.com/docs
+# 使用 Docker 构建和部署
 
 build:
-  type: maven
-  buildCommand: cd backend && mvn clean package -DskipTests
-  outputDirectory: backend/zhk-monolith/zhk-user/target
-
-run:
-  command: java -jar backend/zhk-monolith/zhk-user/target/zhk-user-1.0.0-SNAPSHOT.jar
+  type: dockerfile
+  dockerfile: Dockerfile
 
 port: 8080
 
