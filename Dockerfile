@@ -5,30 +5,31 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 # 设置工作目录
 WORKDIR /app
 
-# 复制 pom.xml 文件（利用 Docker 缓存层）
-COPY backend/pom.xml backend/pom.xml
-COPY backend/zhk-common/pom.xml backend/zhk-common/pom.xml
-COPY backend/zhk-infrastructure/pom.xml backend/zhk-infrastructure/pom.xml
-COPY backend/zhk-monolith/pom.xml backend/zhk-monolith/pom.xml
+# 复制所有 pom.xml 文件（利用 Docker 缓存层优化构建）
+# 先复制父 pom.xml
+COPY backend/pom.xml backend/
+COPY backend/zhk-common/pom.xml backend/zhk-common/
+COPY backend/zhk-infrastructure/pom.xml backend/zhk-infrastructure/
+COPY backend/zhk-monolith/pom.xml backend/zhk-monolith/
 
-# 复制所有模块的 pom.xml（提前下载依赖）
-COPY backend/zhk-common/zhk-common-core/pom.xml backend/zhk-common/zhk-common-core/pom.xml
-COPY backend/zhk-common/zhk-common-security/pom.xml backend/zhk-common/zhk-common-security/pom.xml
-COPY backend/zhk-common/zhk-common-web/pom.xml backend/zhk-common/zhk-common-web/pom.xml
-COPY backend/zhk-infrastructure/zhk-database/pom.xml backend/zhk-infrastructure/zhk-database/pom.xml
-COPY backend/zhk-infrastructure/zhk-redis/pom.xml backend/zhk-infrastructure/zhk-redis/pom.xml
-COPY backend/zhk-infrastructure/zhk-minio/pom.xml backend/zhk-infrastructure/zhk-minio/pom.xml
-COPY backend/zhk-monolith/zhk-user/pom.xml backend/zhk-monolith/zhk-user/pom.xml
-COPY backend/zhk-monolith/zhk-order/pom.xml backend/zhk-monolith/zhk-order/pom.xml
-COPY backend/zhk-monolith/zhk-risk/pom.xml backend/zhk-monolith/zhk-risk/pom.xml
+# 复制子模块的 pom.xml（利用缓存优化）
+COPY backend/zhk-common/zhk-common-core/pom.xml backend/zhk-common/zhk-common-core/
+COPY backend/zhk-common/zhk-common-security/pom.xml backend/zhk-common/zhk-common-security/
+COPY backend/zhk-common/zhk-common-web/pom.xml backend/zhk-common/zhk-common-web/
+COPY backend/zhk-infrastructure/zhk-database/pom.xml backend/zhk-infrastructure/zhk-database/
+COPY backend/zhk-infrastructure/zhk-redis/pom.xml backend/zhk-infrastructure/zhk-redis/
+COPY backend/zhk-infrastructure/zhk-minio/pom.xml backend/zhk-infrastructure/zhk-minio/
+COPY backend/zhk-monolith/zhk-user/pom.xml backend/zhk-monolith/zhk-user/
+COPY backend/zhk-monolith/zhk-order/pom.xml backend/zhk-monolith/zhk-order/
+COPY backend/zhk-monolith/zhk-risk/pom.xml backend/zhk-monolith/zhk-risk/
 
-# 下载依赖（利用缓存）
+# 下载依赖（利用缓存，如果失败继续构建）
 RUN mvn dependency:go-offline -f backend/pom.xml || true
 
-# 复制源代码
+# 复制所有源代码
 COPY backend/ backend/
 
-# 构建应用
+# 构建应用（跳过测试以加快构建速度）
 RUN mvn clean package -DskipTests -f backend/pom.xml
 
 # 阶段2: 运行阶段
