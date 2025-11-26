@@ -1,0 +1,130 @@
+@startuml ZHK_C4_Security_Architecture
+!include ../C4-PlantUML/C4.puml
+!include ../C4-PlantUML/C4_Context.puml
+!include ../C4-PlantUML/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LANDSCAPE()
+
+title Security Architecture Diagram - 租号酷平台 (ZHK-RentalCore)
+
+Person(tenant, "租客", "租赁游戏账号")
+Person(owner, "商家/号主", "出租游戏账号")
+System_Ext(windows_launcher, "Windows启动器", "客户端启动器")
+
+System_Boundary(security_layers, "安全分层架构") {
+    ' 传输安全层
+    Boundary(transport_layer, "传输安全层") {
+        Container(tls, "TLS 1.3", "OpenSSL", "传输层加密")
+        Container(api_signature, "API签名验证", "Spring Security", "防止重放攻击")
+        Container(websocket_encrypt, "WebSocket加密", "WSS", "启动器通信加密")
+    }
+    
+    ' 应用安全层
+    Boundary(app_security_layer, "应用安全层") {
+        Container(jwt_auth, "JWT认证", "Spring Security", "JWT token生成和验证")
+        Container(oauth2, "OAuth2集成", "Spring Security", "微信/支付宝快捷登录")
+        Container(rbac, "RBAC权限控制", "Spring Security", "基于角色的访问控制")
+        Container(api_gateway, "API网关", "Spring Cloud Gateway", "请求验证、限流、路由")
+        Container(rate_limiter, "限流熔断", "Sentinel", "接口级限流，防止暴力破解")
+        Container(input_validation, "输入验证", "Spring Validation", "参数校验、SQL注入防护、XSS防护")
+    }
+    
+    ' 数据安全层
+    Boundary(data_security_layer, "数据安全层") {
+        Container(aes_encryption, "AES-256-GCM加密", "Java Cryptography", "账号密码加密，每账号独立IV")
+        Container(data_masking, "数据脱敏", "Spring Service", "身份证仅存储SHA-256哈希")
+        Container(kms, "密钥管理", "KMS / Vault", "密钥存储和管理，定期轮换")
+        Container(backup_encryption, "备份加密", "AES-256", "备份文件加密")
+    }
+    
+    ' 风控安全层
+    Boundary(risk_control_layer, "风控安全层") {
+        Container(location_service, "异地登录检测", "GeoIP2", "IP地理位置查询，距离>200km触发人脸识别")
+        Container(behavior_analysis, "异常行为识别", "规则引擎", "频繁下单取消、账号异常使用")
+        Container(blacklist, "黑名单机制", "Redis", "设备指纹、IP、手机号黑名单")
+        Container(escrow_service, "资金担保", "Spring Service", "浮动押金、预授权、T+1结算")
+    }
+    
+    ' 沙盒隔离层
+    Boundary(sandbox_layer, "沙盒隔离层 (P1项目)") {
+        Container(hyperv_container, "Windows Hyper-V Container", "Hyper-V", "每次租号生成一次性快照")
+        Container(write_protection, "写屏蔽磁盘", "Hyper-V", "快照销毁前禁止写入")
+        Container(memory_encryption, "内存加密", "BitLocker", "运行时内存数据加密")
+        Container(network_isolation, "网络隔离", "Hyper-V Network", "沙盒内网络访问受限")
+    }
+    
+    ' 举证链层
+    Boundary(evidence_layer, "举证链层") {
+        Container(screenshot_service, "自动截图", "Windows启动器", "还号时自动截图")
+        Container(recording_service, "自动录屏", "Windows启动器", "还号时自动录屏15s")
+        Container(hash_service, "哈希计算", "SHA-256", "证据文件SHA-256哈希")
+        Container(blockchain, "区块链存证", "区块链 (M3阶段)", "证据上链存证")
+    }
+}
+
+System_Ext(wechat_pay, "微信支付", "微信支付服务")
+System_Ext(alipay, "支付宝", "支付宝服务")
+System_Ext(zhima, "芝麻信用", "芝麻信用服务")
+ContainerDb(mysql, "MySQL数据库", "MySQL 8", "存储安全配置和日志")
+ContainerDb(redis, "Redis缓存", "Redis Cluster", "会话、令牌、黑名单存储")
+ContainerDb(minio, "MinIO", "MinIO", "证据文件存储")
+
+' 用户访问流程
+Rel(tenant, tls, "HTTPS连接", "TLS 1.3")
+Rel(owner, tls, "HTTPS连接", "TLS 1.3")
+Rel(tls, api_signature, "API签名验证")
+Rel(api_signature, jwt_auth, "JWT验证")
+Rel(jwt_auth, oauth2, "OAuth2登录")
+Rel(jwt_auth, rbac, "权限检查")
+Rel(rbac, api_gateway, "请求路由")
+Rel(api_gateway, rate_limiter, "限流检查")
+Rel(api_gateway, input_validation, "输入验证")
+
+' 数据加密流程
+Rel(api_gateway, aes_encryption, "数据加密")
+Rel(aes_encryption, kms, "密钥获取")
+Rel(aes_encryption, data_masking, "数据脱敏")
+Rel(data_masking, mysql, "存储", "加密数据")
+Rel(backup_encryption, mysql, "备份加密")
+
+' 风控流程
+Rel(api_gateway, location_service, "IP地理位置查询")
+Rel(location_service, redis, "查询常用登录地")
+Rel(location_service, behavior_analysis, "异常行为检测")
+Rel(behavior_analysis, blacklist, "黑名单检查")
+Rel(behavior_analysis, mysql, "记录异常行为")
+Rel(escrow_service, alipay, "预授权", "冻结花呗额度")
+Rel(escrow_service, mysql, "资金记录")
+
+' 启动器通信
+Rel(windows_launcher, websocket_encrypt, "WebSocket加密连接", "WSS")
+Rel(websocket_encrypt, api_gateway, "消息路由")
+Rel(api_gateway, hyperv_container, "沙盒创建")
+Rel(hyperv_container, write_protection, "写保护")
+Rel(hyperv_container, memory_encryption, "内存加密")
+Rel(hyperv_container, network_isolation, "网络隔离")
+
+' 举证流程
+Rel(windows_launcher, screenshot_service, "触发截图")
+Rel(windows_launcher, recording_service, "触发录屏")
+Rel(screenshot_service, hash_service, "计算哈希")
+Rel(recording_service, hash_service, "计算哈希")
+Rel(hash_service, minio, "上传证据")
+Rel(hash_service, mysql, "存储哈希")
+Rel(hash_service, blockchain, "上链存证 (M3)")
+
+' 外部系统
+Rel(api_gateway, wechat_pay, "支付接口", "HTTPS/API")
+Rel(api_gateway, alipay, "支付接口", "HTTPS/API")
+Rel(api_gateway, zhima, "信用查询", "HTTPS/API")
+
+' 缓存和存储
+Rel(jwt_auth, redis, "JWT黑名单")
+Rel(blacklist, redis, "黑名单存储")
+Rel(location_service, redis, "IP地理位置缓存")
+
+SHOW_LEGEND()
+
+@enduml
+

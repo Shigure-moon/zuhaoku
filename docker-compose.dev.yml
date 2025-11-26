@@ -1,0 +1,119 @@
+# 开发环境 Docker Compose 配置
+# 包含数据库、缓存、存储和管理工具
+# 注意：Docker Compose V2 不再需要 version 字段
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0.44-debian
+    container_name: zhk-mysql-dev
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: root123456
+      MYSQL_DATABASE: zhk_rental
+      MYSQL_USER: zhk_user
+      MYSQL_PASSWORD: zhk_password
+      TZ: Asia/Shanghai
+    ports:
+      - "3307:3306"  # 外部端口 3307，容器内仍为 3306
+    volumes:
+      - mysql_dev_data:/var/lib/mysql
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_connections=1000
+    networks:
+      - zhk-dev-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-proot123456"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7.2-alpine
+    container_name: zhk-redis-dev
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - "6380:6379"  # 外部端口 6380，容器内仍为 6379
+    volumes:
+      - redis_dev_data:/data
+    networks:
+      - zhk-dev-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:latest
+    container_name: zhk-minio-dev
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    ports:
+      - "9002:9000"   # 外部端口 9002，容器内仍为 9000
+      - "9003:9001"   # 外部端口 9003，容器内仍为 9001
+    volumes:
+      - minio_dev_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - zhk-dev-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Redis Commander (Redis 管理工具)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: zhk-redis-commander-dev
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+    ports:
+      - "8083:8081"  # 外部端口 8083，容器内仍为 8081
+    depends_on:
+      - redis
+    networks:
+      - zhk-dev-network
+
+  # phpMyAdmin (MySQL 管理工具)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    container_name: zhk-phpmyadmin-dev
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: root123456
+      UPLOAD_LIMIT: 300M
+      PMA_CHARSET: utf8mb4
+      PMA_COLLATION_CONNECTION: utf8mb4_unicode_ci
+    ports:
+      - "8084:80"  # 外部端口 8084，容器内仍为 80
+    depends_on:
+      - mysql
+    networks:
+      - zhk-dev-network
+
+volumes:
+  mysql_dev_data:
+    driver: local
+  redis_dev_data:
+    driver: local
+  minio_dev_data:
+    driver: local
+
+networks:
+  zhk-dev-network:
+    driver: bridge

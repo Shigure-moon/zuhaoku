@@ -1,0 +1,56 @@
+# 数据库配置示例
+# 单数据源配置（默认）
+spring:
+  datasource:
+    master:
+      driver-class-name: com.mysql.cj.jdbc.Driver
+      url: jdbc:mysql://localhost:3306/zhk_rental?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+      username: root
+      password: your_password
+      druid:
+        initial-size: 5
+        min-idle: 5
+        max-active: 20
+        max-wait: 60000
+        test-while-idle: true
+        validation-query: SELECT 1
+        remove-abandoned: true
+        remove-abandoned-timeout: 1800
+        filters: stat,wall,slf4j
+
+# 多数据源配置（读写分离）
+# 启用从库时，取消下面的注释并配置
+#spring:
+#  datasource:
+#    master:
+#      driver-class-name: com.mysql.cj.jdbc.Driver
+#      url: jdbc:mysql://localhost:3306/zhk_rental?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#      username: root
+#      password: your_password
+#      druid:
+#        initial-size: 5
+#        min-idle: 5
+#        max-active: 20
+#    slave:
+#      enabled: true
+#      driver-class-name: com.mysql.cj.jdbc.Driver
+#      url: jdbc:mysql://localhost:3307/zhk_rental?useUnicode=true&characterEncoding=utf8&serverTimezone=Asia/Shanghai
+#      username: root
+#      password: your_password
+#      druid:
+#        initial-size: 5
+#        min-idle: 5
+#        max-active: 20
+
+# Druid监控配置
+spring:
+  datasource:
+    druid:
+      stat-view-servlet:
+        enabled: true
+        login-username: admin
+        login-password: admin123
+      web-stat-filter:
+        enabled: true
+
+

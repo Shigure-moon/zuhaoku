@@ -1,0 +1,156 @@
+@startuml ZHK_C4_Sequence_Message_Flow
+title Sequence Diagram - 租号酷关键业务流程 (ZHK-RentalCore)
+
+actor "租客" as tenant
+participant "Web前端\n(Vue 3)" as web_app
+participant "API网关\n(Spring Gateway)" as api_gateway
+participant "业务聚合层\n(Spring Boot)" as monolith
+participant "Windows启动器\n(C#/Electron)" as launcher
+participant "MySQL数据库\n(MySQL 8)" as mysql
+participant "Redis缓存\n(Redis Cluster)" as redis
+participant "MinIO\n(对象存储)" as minio
+participant "微信/支付宝\n(支付服务)" as payment
+participant "游戏客户端" as game_client
+participant "游戏服务器" as game_server
+
+== 场景一：30分钟短租完整流程 ==
+
+== 1. 选号下单 ==
+tenant -> web_app: 浏览账号列表
+web_app -> api_gateway: GET /api/v1/accounts?game_id=1
+api_gateway -> monolith: 查询可用账号
+monolith -> redis: 查询缓存
+alt 缓存命中
+    redis -> monolith: 返回缓存数据
+else 缓存未命中
+    monolith -> mysql: 查询账号表 (status=1)
+    mysql -> monolith: 返回账号列表
+    monolith -> redis: 写入缓存
+end
+monolith -> api_gateway: 返回账号列表
+api_gateway -> web_app: 返回账号列表
+web_app -> tenant: 显示账号列表
+
+tenant -> web_app: 选择账号，下单 (30分钟)
+web_app -> api_gateway: POST /api/v1/orders
+api_gateway -> monolith: 创建订单
+monolith -> redis: 获取分布式锁 (防止重复下单)
+monolith -> mysql: 插入订单记录 (status='paying')
+mysql -> monolith: 返回订单ID
+monolith -> api_gateway: 返回订单号和支付信息
+api_gateway -> web_app: 返回订单信息
+web_app -> tenant: 显示支付页面
+
+== 2. 支付处理 ==
+tenant -> payment: 发起支付
+payment -> monolith: 支付回调 (异步)
+monolith -> mysql: 更新订单状态 (status='leasing')
+monolith -> redis: 写入"租期令牌" (key=order_id, TTL=30min)
+monolith -> redis: 冻结押金 (资金担保)
+monolith -> web_app: 支付成功通知 (WebSocket推送)
+web_app -> tenant: 显示支付成功
+
+== 3. 自动上号 ==
+monolith -> launcher: WebSocket消息 (账号信息+一次性token)
+launcher -> monolith: 确认接收
+launcher -> launcher: 解密账号信息 (AES-256-GCM)
+launcher -> game_client: 自动登录 (使用解密后的账号信息)
+game_client -> game_server: 登录请求
+game_server -> game_client: 登录成功
+game_client -> launcher: 登录成功
+launcher -> monolith: 心跳上报 (每5分钟)
+
+loop 每5分钟
+    launcher -> monolith: 心跳上报
+    monolith -> redis: 更新租期令牌TTL
+end
+
+== 4. 租期管理 ==
+note over redis: TTL到期前5分钟
+monolith -> launcher: 弹窗提醒续租
+launcher -> tenant: 显示续租提醒
+
+alt 租客选择续租
+    tenant -> web_app: 确认续租
+    web_app -> api_gateway: POST /api/v1/orders/{id}/renew
+    api_gateway -> monolith: 续租处理
+    monolith -> payment: 发起续租支付
+    payment -> monolith: 支付成功
+    monolith -> redis: 延长TTL (延长30分钟)
+    monolith -> web_app: 续租成功
+    web_app -> tenant: 显示续租成功
+else 租客未续租
+    note over redis: TTL到期
+    monolith -> launcher: 强制踢号指令
+    launcher -> game_client: 退出登录
+    game_client -> game_server: 退出登录
+    launcher -> monolith: 修改密码 (随机生成)
+    monolith -> mysql: 更新账号状态 (status=1, 可租)
+    monolith -> redis: 删除租期令牌
+    monolith -> web_app: 租期到期通知
+    web_app -> tenant: 显示租期到期
+end
+
+== 5. 还号确认 ==
+tenant -> web_app: 确认还号
+web_app -> api_gateway: POST /api/v1/orders/{id}/return
+api_gateway -> monolith: 还号处理
+monolith -> launcher: 触发还号流程
+launcher -> launcher: 自动截图
+launcher -> launcher: 自动录屏 (15s)
+launcher -> minio: 上传截图+录屏
+minio -> launcher: 返回文件URL
+launcher -> launcher: 计算SHA-256哈希
+launcher -> monolith: 还号确认 (证据哈希)
+monolith -> mysql: 更新订单 (status='closed', evidence_hash=xxx)
+monolith -> redis: 解冻押金
+monolith -> mysql: 分账给号主 (T+1结算)
+monolith -> web_app: 订单完成通知
+web_app -> tenant: 显示订单完成
+
+== 场景二：异地登录风控流程 ==
+
+== 1. 登录检测 ==
+tenant -> launcher: 登录游戏
+launcher -> game_client: 启动游戏
+game_client -> game_server: 登录请求
+launcher -> monolith: 上报登录IP
+monolith -> monolith: 查询IP地理位置 (GeoIP2)
+monolith -> mysql: 查询用户常用登录地
+mysql -> monolith: 返回常用登录地
+
+== 2. 风控判断 ==
+alt 距离 > 200km
+    monolith -> web_app: 触发人脸识别
+    web_app -> tenant: 显示人脸识别界面
+    tenant -> web_app: 完成人脸识别
+    web_app -> monolith: 人脸识别结果
+    monolith -> mysql: 更新用户常用登录地
+    monolith -> launcher: 允许登录
+    launcher -> game_client: 继续登录流程
+else 5分钟内多地登录
+    monolith -> mysql: 冻结账号 (status=2)
+    monolith -> mysql: 创建申诉记录
+    monolith -> monolith: 推送告警 (钉钉/企业微信)
+    monolith -> web_app: 账号冻结通知
+    web_app -> tenant: 显示账号冻结
+end
+
+== 场景三：支付回调处理 ==
+
+payment -> monolith: 支付回调 (异步)
+monolith -> mysql: 查询订单
+mysql -> monolith: 返回订单信息
+alt 订单状态为 'paying'
+    monolith -> mysql: 更新订单状态 (status='leasing')
+    monolith -> redis: 写入租期令牌
+    monolith -> redis: 冻结押金
+    monolith -> web_app: 支付成功推送 (WebSocket)
+else 订单状态异常
+    monolith -> mysql: 记录异常日志
+    monolith -> monolith: 告警通知
+end
+monolith -> payment: 回调确认
+
+@enduml
+

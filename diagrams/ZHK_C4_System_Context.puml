@@ -1,0 +1,33 @@
+@startuml ZHK_C4_System_Context
+!include ../C4-PlantUML/C4.puml
+!include ../C4-PlantUML/C4_Context.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LANDSCAPE()
+
+title System Context Diagram - 租号酷 (ZHK-RentalCore)
+
+Person(tenant, "租客", "租赁游戏账号的用户")
+Person(owner, "商家/号主", "出租游戏账号的用户")
+Person(operator, "运营人员", "平台运营和管理人员")
+
+System(zhk_system, "租号酷平台", "游戏账号分时租借平台，支持自动上下号、资金担保、风控管理")
+
+System_Ext(wechat_pay, "微信支付", "微信支付接口，处理订单支付")
+System_Ext(alipay, "支付宝", "支付宝接口，处理订单支付和芝麻信用免押")
+System_Ext(zhima, "芝麻信用", "芝麻信用评分系统，用于免押评估")
+System_Ext(windows_launcher, "Windows启动器", "客户端启动器，负责自动上号、改密、监控")
+
+Rel(tenant, zhk_system, "浏览账号\n下单租赁\n支付", "HTTPS")
+Rel(owner, zhk_system, "发布账号\n管理订单\n提现", "HTTPS")
+Rel(operator, zhk_system, "运营管理\n数据统计\n申诉处理", "HTTPS")
+Rel(zhk_system, wechat_pay, "发起支付\n查询订单", "HTTPS/API")
+Rel(zhk_system, alipay, "发起支付\n查询订单\n免押评估", "HTTPS/API")
+Rel(zhk_system, zhima, "查询信用分\n免押评估", "HTTPS/API")
+Rel(zhk_system, windows_launcher, "下发账号信息\n接收心跳\n强制下号", "HTTPS/WebSocket")
+Rel(windows_launcher, zhk_system, "上报登录状态\n上传截图/录屏", "HTTPS/WebSocket")
+
+SHOW_LEGEND()
+
+@enduml
+

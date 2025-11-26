@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 
+         http://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>com.zhk</groupId>
+        <artifactId>zhk-rental-core</artifactId>
+        <version>1.0.0-SNAPSHOT</version>
+    </parent>
+
+    <artifactId>zhk-infrastructure</artifactId>
+    <packaging>pom</packaging>
+    <name>基础设施模块</name>
+
+    <modules>
+        <module>zhk-database</module>
+        <module>zhk-redis</module>
+        <module>zhk-minio</module>
+    </modules>
+</project>
+

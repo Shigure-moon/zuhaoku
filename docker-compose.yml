@@ -1,0 +1,125 @@
+# 生产环境 Docker Compose 配置
+# 注意：Docker Compose V2 不再需要 version 字段
+
+services:
+  # MySQL 数据库
+  mysql:
+    image: mysql:8.0.44-debian
+    container_name: zhk-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_ROOT_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      MYSQL_DATABASE: ${MYSQL_DATABASE:-zhk_rental}
+      MYSQL_USER: ${MYSQL_USER:-zhk_user}
+      MYSQL_PASSWORD: ${MYSQL_PASSWORD:-zhk_password}
+      TZ: Asia/Shanghai
+    ports:
+      - "${MYSQL_PORT:-3306}:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./backend/scripts/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    command:
+      - --character-set-server=utf8mb4
+      - --collation-server=utf8mb4_unicode_ci
+      - --default-authentication-plugin=mysql_native_password
+      - --max_connections=1000
+      - --innodb_buffer_pool_size=1G
+    networks:
+      - zhk-network
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "root", "-p${MYSQL_ROOT_PASSWORD}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # Redis 缓存
+  redis:
+    image: redis:7.2.5-alpine
+    container_name: zhk-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes --requirepass ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_PORT:-6379}:6379"
+    volumes:
+      - redis_data:/data
+    networks:
+      - zhk-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  # MinIO 对象存储
+  minio:
+    image: minio/minio:RELEASE.2024-11-15T19-28-30Z
+    container_name: zhk-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-minioadmin}
+      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-minioadmin123}
+    ports:
+      - "${MINIO_API_PORT:-9000}:9000"
+      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+    volumes:
+      - minio_data:/data
+    command: server /data --console-address ":9001"
+    networks:
+      - zhk-network
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:9000/minio/health/live"]
+      interval: 30s
+      timeout: 20s
+      retries: 3
+
+  # Redis Commander (Redis 管理工具，可选)
+  redis-commander:
+    image: rediscommander/redis-commander:latest
+    container_name: zhk-redis-commander
+    restart: unless-stopped
+    environment:
+      REDIS_HOSTS: local:redis:6379
+      REDIS_PASSWORD: ${REDIS_PASSWORD:-}
+    ports:
+      - "${REDIS_COMMANDER_PORT:-8081}:8081"
+    depends_on:
+      - redis
+    networks:
+      - zhk-network
+    profiles:
+      - tools
+
+  # phpMyAdmin (MySQL 管理工具，可选)
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:5.2
+    container_name: zhk-phpmyadmin
+    restart: unless-stopped
+    environment:
+      PMA_HOST: mysql
+      PMA_PORT: 3306
+      PMA_USER: root
+      PMA_PASSWORD: ${MYSQL_ROOT_PASSWORD:-root123456}
+      UPLOAD_LIMIT: 300M
+      PMA_CHARSET: utf8mb4
+      PMA_COLLATION_CONNECTION: utf8mb4_unicode_ci
+    ports:
+      - "${PHPMYADMIN_PORT:-8082}:80"
+    depends_on:
+      - mysql
+    networks:
+      - zhk-network
+    profiles:
+      - tools
+
+volumes:
+  mysql_data:
+    driver: local
+  redis_data:
+    driver: local
+  minio_data:
+    driver: local
+
+networks:
+  zhk-network:
+    driver: bridge
+

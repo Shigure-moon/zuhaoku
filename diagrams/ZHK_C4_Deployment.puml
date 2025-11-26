@@ -1,0 +1,154 @@
+@startuml ZHK_C4_Deployment
+!include ../C4-PlantUML/C4.puml
+!include ../C4-PlantUML/C4_Context.puml
+!include ../C4-PlantUML/C4_Container.puml
+!include ../C4-PlantUML/C4_Deployment.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LANDSCAPE()
+
+title Deployment Diagram - 租号酷平台 (ZHK-RentalCore)
+
+Deployment_Node(internet, "Internet", "公网") {
+}
+
+Deployment_Node(dmz, "DMZ区域", "边界网络") {
+    Deployment_Node(nginx_server, "Nginx服务器", "Docker容器") {
+        Container(nginx_proxy, "Nginx反向代理", "Nginx", "SSL终端，请求转发，负载均衡")
+    }
+}
+
+Deployment_Node(app_zone, "应用区", "内网") {
+    Deployment_Node(app_cluster, "应用集群", "Docker Swarm / Kubernetes") {
+        Container(web_app_1, "Web前端 1", "Vue 3, Nginx", "前端应用实例")
+        Container(web_app_2, "Web前端 2", "Vue 3, Nginx", "前端应用实例")
+        Container(api_gateway_1, "API网关 1", "Spring Cloud Gateway", "限流、鉴权、路由")
+        Container(api_gateway_2, "API网关 2", "Spring Cloud Gateway", "限流、鉴权、路由")
+        Container(monolith_1, "业务聚合层 1", "Spring Boot", "业务服务实例")
+        Container(monolith_2, "业务聚合层 2", "Spring Boot", "业务服务实例")
+        Container(monolith_3, "业务聚合层 3", "Spring Boot", "业务服务实例")
+    }
+}
+
+Deployment_Node(db_zone, "数据区", "内网") {
+    Deployment_Node(mysql_cluster, "MySQL集群", "Docker Swarm / Kubernetes") {
+        ContainerDb(mysql_primary, "MySQL主库", "MySQL 8", "主数据库 (写操作)")
+        ContainerDb(mysql_replica_1, "MySQL从库 1", "MySQL 8", "从数据库 (读操作)")
+        ContainerDb(mysql_replica_2, "MySQL从库 2", "MySQL 8", "从数据库 (读操作)")
+    }
+    
+    Deployment_Node(redis_cluster, "Redis集群", "Docker Swarm / Kubernetes") {
+        ContainerDb(redis_master_1, "Redis Master 1", "Redis 7", "缓存主节点")
+        ContainerDb(redis_master_2, "Redis Master 2", "Redis 7", "缓存主节点")
+        ContainerDb(redis_master_3, "Redis Master 3", "Redis 7", "缓存主节点")
+        ContainerDb(redis_slave_1, "Redis Slave 1", "Redis 7", "缓存从节点")
+        ContainerDb(redis_slave_2, "Redis Slave 2", "Redis 7", "缓存从节点")
+        ContainerDb(redis_slave_3, "Redis Slave 3", "Redis 7", "缓存从节点")
+    }
+    
+    Deployment_Node(storage_cluster, "存储集群", "Docker Swarm / Kubernetes") {
+        ContainerDb(minio_1, "MinIO 1", "MinIO", "对象存储节点")
+        ContainerDb(minio_2, "MinIO 2", "MinIO", "对象存储节点")
+        ContainerDb(minio_3, "MinIO 3", "MinIO", "对象存储节点")
+    }
+}
+
+Deployment_Node(monitor_zone, "监控区", "内网") {
+    Deployment_Node(monitor_cluster, "监控集群", "Docker Swarm / Kubernetes") {
+        Container(prometheus, "Prometheus", "Prometheus", "指标收集")
+        Container(grafana, "Grafana", "Grafana", "可视化面板")
+        Container(elasticsearch, "Elasticsearch", "Elasticsearch", "日志存储")
+        Container(kibana, "Kibana", "Kibana", "日志分析")
+        Container(skywalking, "SkyWalking", "SkyWalking", "链路追踪")
+    }
+}
+
+Person(tenant, "租客", "租赁游戏账号")
+Person(owner, "商家/号主", "出租游戏账号")
+Person(operator, "运营人员", "平台运营管理")
+
+System_Ext(wechat_pay, "微信支付", "微信支付服务")
+System_Ext(alipay, "支付宝", "支付宝服务")
+System_Ext(zhima, "芝麻信用", "芝麻信用服务")
+System_Ext(windows_launcher, "Windows启动器", "客户端启动器")
+
+' 用户访问
+Rel(tenant, internet, "访问")
+Rel(owner, internet, "访问")
+Rel(operator, internet, "访问")
+Rel(internet, nginx_proxy, "HTTPS")
+
+' DMZ到应用区
+Rel(nginx_proxy, web_app_1, "HTTP")
+Rel(nginx_proxy, web_app_2, "HTTP")
+Rel(nginx_proxy, api_gateway_1, "HTTP")
+Rel(nginx_proxy, api_gateway_2, "HTTP")
+
+' 应用内部
+Rel(web_app_1, api_gateway_1, "HTTP")
+Rel(web_app_2, api_gateway_2, "HTTP")
+Rel(api_gateway_1, monolith_1, "HTTP")
+Rel(api_gateway_1, monolith_2, "HTTP")
+Rel(api_gateway_1, monolith_3, "HTTP")
+Rel(api_gateway_2, monolith_1, "HTTP")
+Rel(api_gateway_2, monolith_2, "HTTP")
+Rel(api_gateway_2, monolith_3, "HTTP")
+
+' 应用层到数据层
+Rel(monolith_1, mysql_primary, "写操作", "JDBC")
+Rel(monolith_2, mysql_primary, "写操作", "JDBC")
+Rel(monolith_3, mysql_primary, "写操作", "JDBC")
+Rel(monolith_1, mysql_replica_1, "读操作", "JDBC")
+Rel(monolith_2, mysql_replica_1, "读操作", "JDBC")
+Rel(monolith_3, mysql_replica_1, "读操作", "JDBC")
+Rel(monolith_1, mysql_replica_2, "读操作", "JDBC")
+Rel(monolith_2, mysql_replica_2, "读操作", "JDBC")
+Rel(monolith_3, mysql_replica_2, "读操作", "JDBC")
+
+' MySQL主从复制
+Rel(mysql_primary, mysql_replica_1, "主从复制", "MySQL Replication")
+Rel(mysql_primary, mysql_replica_2, "主从复制", "MySQL Replication")
+
+' Redis集群
+Rel(monolith_1, redis_master_1, "读写", "Redis Protocol")
+Rel(monolith_2, redis_master_2, "读写", "Redis Protocol")
+Rel(monolith_3, redis_master_3, "读写", "Redis Protocol")
+Rel(redis_master_1, redis_slave_1, "主从复制", "Redis Replication")
+Rel(redis_master_2, redis_slave_2, "主从复制", "Redis Replication")
+Rel(redis_master_3, redis_slave_3, "主从复制", "Redis Replication")
+Rel(redis_master_1, redis_master_2, "集群同步", "Redis Cluster")
+Rel(redis_master_2, redis_master_3, "集群同步", "Redis Cluster")
+Rel(redis_master_3, redis_master_1, "集群同步", "Redis Cluster")
+
+' MinIO集群
+Rel(monolith_1, minio_1, "上传/下载", "S3 API")
+Rel(monolith_2, minio_2, "上传/下载", "S3 API")
+Rel(monolith_3, minio_3, "上传/下载", "S3 API")
+Rel(minio_1, minio_2, "数据同步", "MinIO Erasure Code")
+Rel(minio_2, minio_3, "数据同步", "MinIO Erasure Code")
+Rel(minio_3, minio_1, "数据同步", "MinIO Erasure Code")
+
+' 监控
+Rel(monolith_1, prometheus, "指标上报", "HTTP")
+Rel(monolith_2, prometheus, "指标上报", "HTTP")
+Rel(monolith_3, prometheus, "指标上报", "HTTP")
+Rel(prometheus, grafana, "数据查询", "HTTP")
+Rel(monolith_1, elasticsearch, "日志上报", "HTTP")
+Rel(monolith_2, elasticsearch, "日志上报", "HTTP")
+Rel(monolith_3, elasticsearch, "日志上报", "HTTP")
+Rel(elasticsearch, kibana, "数据查询", "HTTP")
+Rel(monolith_1, skywalking, "链路追踪", "gRPC")
+Rel(monolith_2, skywalking, "链路追踪", "gRPC")
+Rel(monolith_3, skywalking, "链路追踪", "gRPC")
+
+' 外部系统
+Rel(monolith_1, wechat_pay, "支付接口", "HTTPS/API")
+Rel(monolith_1, alipay, "支付接口", "HTTPS/API")
+Rel(monolith_1, zhima, "信用查询", "HTTPS/API")
+Rel(monolith_1, windows_launcher, "账号下发", "WebSocket")
+Rel(windows_launcher, monolith_1, "状态上报", "WebSocket")
+
+SHOW_LEGEND()
+
+@enduml
+

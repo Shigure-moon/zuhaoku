@@ -1,0 +1,136 @@
+@startuml ZHK_C4_Component
+!include ../C4-PlantUML/C4.puml
+!include ../C4-PlantUML/C4_Context.puml
+!include ../C4-PlantUML/C4_Container.puml
+!include ../C4-PlantUML/C4_Component.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LANDSCAPE()
+
+title Component Diagram - 租号酷业务聚合层 (ZHK-RentalCore)
+
+Container(monolith, "业务聚合层", "Spring Boot", "单体应用，包含用户、资产、订单、钱包等核心业务")
+
+System_Boundary(monolith_service, "业务聚合层") {
+    ' 用户服务组件
+    Boundary(user_module, "用户服务模块 (zhk-user)") {
+        Component(user_controller, "UserController", "Spring MVC", "用户注册、登录、实名认证接口")
+        Component(user_service, "UserService", "Spring Service", "用户业务逻辑，信用评估")
+        Component(auth_service, "AuthService", "Spring Service", "JWT生成、验证，OAuth2集成")
+        Component(credit_service, "CreditService", "Spring Service", "芝麻信用对接")
+    }
+    
+    ' 资产服务组件
+    Boundary(asset_module, "资产服务模块 (zhk-asset)") {
+        Component(account_controller, "AccountController", "Spring MVC", "账号发布、查询、上下架接口")
+        Component(account_service, "AccountService", "Spring Service", "账号管理逻辑")
+        Component(encryption_service, "EncryptionService", "Spring Service", "账号密码加密/解密 (AES-256-GCM)")
+        Component(game_service, "GameService", "Spring Service", "游戏信息管理")
+    }
+    
+    ' 订单服务组件
+    Boundary(order_module, "订单服务模块 (zhk-order)") {
+        Component(order_controller, "OrderController", "Spring MVC", "订单创建、查询、取消接口")
+        Component(order_service, "OrderService", "Spring Service", "订单状态流转 (状态机模式)")
+        Component(timer_service, "TimerService", "Spring Service", "租期计时、到期提醒、自动回收")
+        Component(launcher_service, "LauncherService", "Spring Service", "启动器通信 (WebSocket)")
+    }
+    
+    ' 钱包服务组件
+    Boundary(wallet_module, "钱包服务模块 (zhk-wallet)") {
+        Component(wallet_controller, "WalletController", "Spring MVC", "余额查询、提现接口")
+        Component(payment_service, "PaymentService", "Spring Service", "支付对接 (微信/支付宝)")
+        Component(escrow_service, "EscrowService", "Spring Service", "资金担保、冻结、解冻、分账")
+        Component(settlement_service, "SettlementService", "Spring Service", "结算服务 (定时任务)")
+    }
+    
+    ' 风控服务组件
+    Boundary(risk_module, "风控服务模块 (zhk-risk)") {
+        Component(risk_controller, "RiskController", "Spring MVC", "风控规则配置接口")
+        Component(location_service, "LocationService", "Spring Service", "异地登录检测 (IP地理位置)")
+        Component(behavior_service, "BehaviorService", "Spring Service", "异常行为识别 (规则引擎)")
+        Component(appeal_service, "AppealService", "Spring Service", "申诉处理")
+    }
+    
+    ' 日志审计组件
+    Boundary(audit_module, "日志审计模块 (zhk-user)") {
+        Component(audit_controller, "AuditLogController", "Spring MVC", "日志审计查询接口")
+        Component(audit_service, "AuditLogService", "Spring Service", "日志记录和查询")
+        Component(audit_aspect, "AuditLogAspect", "Spring AOP", "自动记录关键操作")
+    }
+    
+    ' 共享组件
+    ComponentDb(mysql, "MySQL数据库", "MySQL 8", "存储业务数据")
+    ComponentDb(redis, "Redis缓存", "Redis Cluster", "缓存、分布式锁、计时器")
+    ComponentDb(minio, "MinIO", "MinIO", "对象存储 (截图/录屏)")
+}
+
+Container_Ext(api_gateway, "API网关", "Spring Cloud Gateway", "限流、鉴权、路由")
+Container_Ext(web_app, "Web前端", "Vue 3", "前端应用")
+Container_Ext(windows_launcher, "Windows启动器", "C#/Electron", "客户端启动器")
+System_Ext(wechat_pay, "微信支付", "微信支付接口")
+System_Ext(alipay, "支付宝", "支付宝接口")
+System_Ext(zhima, "芝麻信用", "芝麻信用评分系统")
+
+' Web前端到Controller的关系
+Rel(web_app, api_gateway, "HTTPS/REST")
+Rel(api_gateway, user_controller, "HTTP")
+Rel(api_gateway, account_controller, "HTTP")
+Rel(api_gateway, order_controller, "HTTP")
+Rel(api_gateway, wallet_controller, "HTTP")
+Rel(api_gateway, risk_controller, "HTTP")
+Rel(api_gateway, audit_controller, "HTTP")
+
+' Controller到Service的关系
+Rel(user_controller, user_service, "调用")
+Rel(user_controller, auth_service, "调用")
+Rel(account_controller, account_service, "调用")
+Rel(account_controller, encryption_service, "调用")
+Rel(order_controller, order_service, "调用")
+Rel(order_controller, timer_service, "调用")
+Rel(wallet_controller, payment_service, "调用")
+Rel(wallet_controller, escrow_service, "调用")
+Rel(risk_controller, location_service, "调用")
+Rel(risk_controller, behavior_service, "调用")
+Rel(audit_controller, audit_service, "调用")
+Rel(audit_aspect, audit_service, "自动记录")
+
+' Service之间的调用关系
+Rel(user_service, credit_service, "调用")
+Rel(account_service, encryption_service, "调用")
+Rel(order_service, timer_service, "调用")
+Rel(order_service, launcher_service, "调用")
+Rel(escrow_service, payment_service, "调用")
+Rel(settlement_service, escrow_service, "调用")
+
+' Service到数据库的关系
+Rel(user_service, mysql, "读写", "JDBC/MyBatis")
+Rel(account_service, mysql, "读写", "JDBC/MyBatis")
+Rel(order_service, mysql, "读写", "JDBC/MyBatis")
+Rel(payment_service, mysql, "读写", "JDBC/MyBatis")
+Rel(escrow_service, mysql, "读写", "JDBC/MyBatis")
+Rel(appeal_service, mysql, "读写", "JDBC/MyBatis")
+Rel(audit_service, mysql, "读写", "JDBC/MyBatis")
+
+' Service到缓存的关系
+Rel(user_service, redis, "读写", "Redis Protocol")
+Rel(auth_service, redis, "读写", "JWT黑名单")
+Rel(account_service, redis, "读写", "账号缓存")
+Rel(order_service, redis, "读写", "租期令牌、分布式锁")
+Rel(timer_service, redis, "读写", "TTL计时器")
+
+' Service到对象存储的关系
+Rel(appeal_service, minio, "上传/下载", "S3 API")
+Rel(launcher_service, minio, "上传", "截图/录屏")
+
+' 外部系统调用
+Rel(payment_service, wechat_pay, "支付接口", "HTTPS/API")
+Rel(payment_service, alipay, "支付接口", "HTTPS/API")
+Rel(credit_service, zhima, "信用查询", "HTTPS/API")
+Rel(launcher_service, windows_launcher, "账号下发", "WebSocket")
+Rel(windows_launcher, launcher_service, "状态上报", "WebSocket")
+
+SHOW_LEGEND()
+
+@enduml
+

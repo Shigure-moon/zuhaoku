@@ -1,0 +1,23 @@
+# 支付宝配置模板
+# 复制此配置到 application-dev.yml 的 zhk.alipay 部分
+
+alipay:
+  app-id: YOUR_APP_ID  # 从支付宝开放平台获取
+  private-key: |
+    -----BEGIN PRIVATE KEY-----
+    # 使用 backend/scripts/alipay-keys/alipay_app_private_key_pkcs8.pem 文件内容
+    # 注意：生产环境请使用环境变量或密钥管理服务
+    -----END PRIVATE KEY-----
+  alipay-public-key: |
+    -----BEGIN PUBLIC KEY-----
+    # 从支付宝开放平台下载的支付宝公钥
+    # 上传应用公钥后，在开放平台下载支付宝公钥
+    -----END PUBLIC KEY-----
+  gateway-url: https://openapi.alipay.com/gateway.do
+  # 沙箱环境: https://openapi.alipaydev.com/gateway.do
+  encrypt-key: lE4SjgSUUKi5tmrfKB3A3g==  # 接口内容加密密钥（从 START_SERVICES.md 获取）
+  notify-url: http://localhost:8081/api/v1/payments/alipay/notify  # 异步通知地址
+  return-url: http://localhost:3000/tenant/orders  # 同步跳转地址
+  sign-type: RSA2  # 签名算法
+  charset: UTF-8
+

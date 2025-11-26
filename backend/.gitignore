@@ -1,0 +1,44 @@
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+buildNumber.properties
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# IDE
+.idea/
+*.iml
+*.iws
+*.ipr
+.vscode/
+.classpath
+.project
+.settings/
+bin/
+
+# Logs
+*.log
+logs/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Application
+application-local.yml
+application-prod.yml
+
+# 支付宝密钥文件（敏感信息，不要提交到仓库）
+scripts/alipay-keys/*.pem
+scripts/alipay-keys/*.conf
+!scripts/alipay-keys/README.md
+
+# 微信支付密钥文件（敏感信息）
+scripts/wechat-keys/
+*.key
+

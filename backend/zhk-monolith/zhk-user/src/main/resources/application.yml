@@ -1,0 +1,6 @@
+spring:
+  application:
+    name: zhk-user
+  profiles:
+    active: ${SPRING_PROFILES_ACTIVE:prod}
+

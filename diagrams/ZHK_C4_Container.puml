@@ -1,0 +1,46 @@
+@startuml ZHK_C4_Container
+!include ../C4-PlantUML/C4.puml
+!include ../C4-PlantUML/C4_Context.puml
+!include ../C4-PlantUML/C4_Container.puml
+
+LAYOUT_WITH_LEGEND()
+LAYOUT_LANDSCAPE()
+
+title Container Diagram - 租号酷 (ZHK-RentalCore)
+
+Person(tenant, "租客", "租赁游戏账号的用户")
+Person(owner, "商家/号主", "出租游戏账号的用户")
+Person(operator, "运营人员", "平台运营和管理人员")
+
+System_Boundary(zhk_system, "租号酷平台") {
+    Container(web_app, "Web前端", "Vue 3, TypeScript", "提供用户界面，支持租客、商家、运营三种角色")
+    Container(api_gateway, "API网关", "Spring Cloud Gateway", "限流、鉴权、路由、灰度发布")
+    Container(monolith, "业务聚合层", "Spring Boot", "单体应用，包含用户、资产、订单、钱包等核心业务")
+    ContainerDb(mysql, "MySQL数据库", "MySQL 8", "存储用户、账号、订单、资金等业务数据")
+    ContainerDb(redis, "Redis缓存", "Redis Cluster", "缓存、分布式锁、计时器、会话管理")
+    ContainerDb(minio, "对象存储", "MinIO", "存储截图、录屏、举证材料")
+}
+
+System_Ext(wechat_pay, "微信支付", "微信支付接口")
+System_Ext(alipay, "支付宝", "支付宝接口")
+System_Ext(zhima, "芝麻信用", "芝麻信用评分系统")
+System_Ext(windows_launcher, "Windows启动器", "客户端启动器")
+
+Rel(tenant, web_app, "使用", "HTTPS")
+Rel(owner, web_app, "使用", "HTTPS")
+Rel(operator, web_app, "使用", "HTTPS")
+Rel(web_app, api_gateway, "API调用", "HTTPS/REST")
+Rel(api_gateway, monolith, "路由转发", "HTTP")
+Rel(monolith, mysql, "读写", "JDBC/MyBatis")
+Rel(monolith, redis, "读写", "Redis Protocol")
+Rel(monolith, minio, "上传/下载", "S3 API")
+Rel(monolith, wechat_pay, "支付接口", "HTTPS/API")
+Rel(monolith, alipay, "支付接口", "HTTPS/API")
+Rel(monolith, zhima, "信用查询", "HTTPS/API")
+Rel(monolith, windows_launcher, "账号下发\n心跳监控", "HTTPS/WebSocket")
+Rel(windows_launcher, monolith, "状态上报\n证据上传", "HTTPS/WebSocket")
+
+SHOW_LEGEND()
+
+@enduml
+

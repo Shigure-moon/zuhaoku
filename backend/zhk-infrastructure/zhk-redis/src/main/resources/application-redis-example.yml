@@ -1,0 +1,23 @@
+# Redis配置示例
+spring:
+  data:
+    redis:
+      host: localhost
+      port: 6379
+      password: 
+      database: 0
+      timeout: 3000
+      lettuce:
+        pool:
+          max-active: 8
+          max-idle: 8
+          min-idle: 0
+          max-wait: -1
+
+# Redisson配置（可选，用于分布式锁等高级功能）
+zhk:
+  redis:
+    redisson:
+      enabled: true
+
+
