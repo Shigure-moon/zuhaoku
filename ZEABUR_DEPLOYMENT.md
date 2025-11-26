@@ -27,12 +27,12 @@ MYSQL_DATABASE=zuhaoku
 MYSQL_USER=shigure2
 MYSQL_PASSWORD=NVxtg0a9HYU5i62K
 
-# JWT 密钥（生产环境请修改）
-JWT_SECRET=zhk-rental-core-secret-key-min-256-bits-for-security-please-change-in-production
+# JWT 密钥
+JWT_SECRET=993056993056993056993056993056993056
 
-# 加密密钥（生产环境请修改）
-ENCRYPTION_KEY=zhk-encryption-key-32-bytes-long
-ENCRYPTION_MASTER_KEY=ZHK-RentalCore-2024-MasterKey-32Bytes!!
+# 加密密钥
+ENCRYPTION_KEY=993056993056993056993056993056993056
+ENCRYPTION_MASTER_KEY=993056993056993056993056993056993056
 ```
 
 #### 可选的环境变量

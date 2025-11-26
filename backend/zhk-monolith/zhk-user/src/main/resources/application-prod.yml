@@ -63,15 +63,15 @@ mybatis-plus:
 zhk:
   # JWT 配置（生产环境应使用环境变量）
   jwt:
-    secret: ${JWT_SECRET:zhk-rental-core-secret-key-min-256-bits-for-security-please-change-in-production}
+    secret: ${JWT_SECRET:993056993056993056993056993056993056}
     expiration: 86400000 # 24小时
   
   # 加密配置（生产环境应使用环境变量）
   encryption:
     algorithm: AES
     mode: GCM
-    key: ${ENCRYPTION_KEY:zhk-encryption-key-32-bytes-long}
-    master-key: ${ENCRYPTION_MASTER_KEY:ZHK-RentalCore-2024-MasterKey-32Bytes!!}
+    key: ${ENCRYPTION_KEY:993056993056993056993056993056993056}
+    master-key: ${ENCRYPTION_MASTER_KEY:993056993056993056993056993056993056}
 
   # MinIO 配置（生产环境）
   minio:
