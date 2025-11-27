@@ -89,19 +89,42 @@ zhk:
 
   # 支付宝配置（开发环境）
   alipay:
-    app-id: YOUR_APP_ID  # 从支付宝开放平台获取
+    app-id: 2021006112616763  # Woo租号酷 AppID
     private-key: |
       -----BEGIN PRIVATE KEY-----
-      # 使用 backend/scripts/alipay-keys/alipay_app_private_key_pkcs8.pem 文件内容
-      # 注意：生产环境请使用环境变量或密钥管理服务
+      MIIEvgIBADANBgkqhkiG9w0BAQEFAASCBKgwggSkAgEAAoIBAQCjLQcH89cIzvtG
+      eoUKwzqsEoMDz2RoH16wRXGUipfTQPOiTITVBtGGCPWbEtgfrtH548+is6LfUXDS
+      VywDsYIQrX60RwqjEKuKrU1392nBpa7TvYycj1KUP/AhSFEmMbvD4DX+hRDrc9ms
+      3bkl12hqLQV6VCKv1QqSdAq2sQFXjd4CEWer/4EpYS7vRWnO/DmlJAGpEasSVQrR
+      ZHZE13ShMcJGOAhqSG4EEOqiVpTV7OKdnXaFu2/Tf0WcDOD76B586LD8FY0G+PgX
+      Nqd7/e9lpUPSw/6jXLKVgu+oklQnSHkfTL5OV3HuNoLnaD4gHdwqRsziqkfOO0Nl
+      pDlowTrXAgMBAAECggEAJ7L2QXSNLfrxfkmjoaUy2pdcYaps4rozFs6mXf3EB2UH
+      gUZ9kLhqdGIsovBYPYkSU+odY5exugQ93ybPMgzXOIiFSYX5LAgLvB8CuHussqzF
+      FoXItnRWInRVzzshZxn1dSfQ6x3jqm0SmfCNsYuxPxe5+/OJRt8dhdkOnDj/OxYI
+      3FFBRrjciV46+66nYjeHkLsglOisSfn/wrUWzopPkHoXMnwVbsUcXJdR86UWxn3t
+      k3wPgoq/BCBzTFLIMviNG4nDIhCe4t8rUVPKvopnBumVj3XiwBExj7c2C+jEkAj4
+      D+DAsCzJRQobZi/JNYWuO7S8majmER/2NJ2xtn13DQKBgQDSxyW97Ikz4p/bNfa+
+      MISlD3d2XntQsaY/0T7GkmS6TrgHnfk0KFPwMed3UyiDOMKx6g+uiNJdYBFbnm7D
+      y6G9BM3IQGiMeSot7YMz9dHNrswp846p7BfZ+oKPnPMn8GWZqrhKq+xIT+/U/CXl
+      lV9Sk7uGO03N+xjg9VBZ3m6+bQKBgQDGL13bka9kSd2em+g52bbJghEgxO+F7zJP
+      MyiXmGuEYvApQXHAR1dN2/48YBPyjYoS4RwTKsT4TFehQxTQOsV11Zl5MF9dmtYJ
+      Kl2ThIxkfB1Sd66cvAW2i3aUvP3zLgHFPza3rfy1VGXWIDEajdQpDhZSR5z1vgEr
+      A2Y+YNsD0wKBgQDB945d5wyj+MuPGWwFvfRzSXZwMaZdrf4GAHM6nYGgicyFBfVM
+      8Ee+ZM5TWu2PRG6292STA0pDr6KJo5TfDce7gG42+D699srAFTCGYpM+KrurZ31E
+      FgYlDImVy6Ngf7Of5CFQZkI8kYNthtUBH6LnBRivAGgrRAWzD01wRme3SQKBgQCM
+      RzK0G+Z9ohsQDWLOr9/Fuh7NhxfTQX/mt1tgEi7oQe+kBAK0Csss/S5zJb54zN6S
+      hmwM1RUee0r7hjPRQAhMY6iCM08NPm+JhUc/B28oIQHQQY6CukOA9i41EaDe5A20
+      xA3C7ZAV+WsrqRWYqhMmDCaYjr/24UqKW5mfRYdAqQKBgB3t36c3Iirno82hLajA
+      aa3Rdq9DSXmshr2e34VoCoIcCvO0ErR8bBPVab+QirFxiWX7bhY5QrYciLc5/F8W
+      mYAlggZjEDIcXvNHeB6f+EUcW9Or/CJiMlOcFh3vBGBwKU6pBH9zPZLKSCp3ctYx
+      gpIYVGM32DOtStNVF+IEmXyB
       -----END PRIVATE KEY-----
     alipay-public-key: |
       -----BEGIN PUBLIC KEY-----
-      # 从支付宝开放平台下载的支付宝公钥
-      # 上传应用公钥后，在开放平台下载支付宝公钥
+      MIIBIjANBgkqhkiG9w0BAQEFAAOCAQ8AMIIBCgKCAQEAkAazBMmylpczF95Cnst378nberUZuTFLdx549S/0JFRU7wqfAn91/HIrxJZUJpiKC3xvrkiz4vA4+RSDAGpP5KTyPmfQRuphtn38tquQp08a57l+osx9L0121r5VESwIbDhsmvFsJ9PMr0U7xuVrZk3jDSyTLHaW0kAeh7l8hFumLnK7eFQsiFEOLWnK+0Y02xpuiY9bzCvuR54bFfrtGlYt2yHVG77DWTSj8RjXY0ZziQ19N83yUoKzNjW5FbmO+ZqVDbMLdvAxw8h3+XdMMqOxAAZBl+n7zq/u41USDZZZ3s+KmR6iz7aqQI3ds+4SGh5+PaSaslkApAagPJIXtQIDAQAB
       -----END PUBLIC KEY-----
-    gateway-url: https://openapi.alipay.com/gateway.do
-    # 沙箱环境: https://openapi.alipaydev.com/gateway.do
+    gateway-url: https://openapi.alipaydev.com/gateway.do  # 本地开发使用沙箱环境
+    # 生产环境: https://openapi.alipay.com/gateway.do
     encrypt-key: lE4SjgSUUKi5tmrfKB3A3g==
     notify-url: http://localhost:8081/api/v1/payments/alipay/notify
     return-url: http://localhost:3000/tenant/orders
