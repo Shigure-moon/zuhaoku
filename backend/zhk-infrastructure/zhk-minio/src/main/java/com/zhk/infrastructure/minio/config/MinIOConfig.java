@@ -20,6 +20,22 @@ public class MinIOConfig {
 
     @Bean
     public MinioClient minioClient() {
+        // 验证配置 - 如果配置不完整，返回 null（不创建客户端）
+        if (minIOProperties.getEndpoint() == null || minIOProperties.getEndpoint().trim().isEmpty()) {
+            log.warn("MinIO endpoint 未配置，MinIO 功能将不可用。请检查配置：zhk.minio.endpoint");
+            return null;
+        }
+        
+        if (minIOProperties.getAccessKey() == null || minIOProperties.getAccessKey().trim().isEmpty()) {
+            log.warn("MinIO accessKey 未配置，MinIO 功能将不可用。请检查配置：zhk.minio.access-key");
+            return null;
+        }
+        
+        if (minIOProperties.getSecretKey() == null || minIOProperties.getSecretKey().trim().isEmpty()) {
+            log.warn("MinIO secretKey 未配置，MinIO 功能将不可用。请检查配置：zhk.minio.secret-key");
+            return null;
+        }
+        
         try {
             MinioClient client = MinioClient.builder()
                     .endpoint(minIOProperties.getEndpoint())
@@ -40,10 +56,13 @@ public class MinIOConfig {
                 log.info("MinIO存储桶已存在: {}", minIOProperties.getBucketName());
             }
 
+            log.info("✅ MinIO客户端初始化成功: endpoint={}, bucket={}", 
+                    minIOProperties.getEndpoint(), minIOProperties.getBucketName());
             return client;
         } catch (Exception e) {
-            log.error("初始化MinIO客户端失败", e);
-            throw new RuntimeException("初始化MinIO客户端失败", e);
+            log.error("初始化MinIO客户端失败，MinIO 功能将不可用", e);
+            // 返回 null 而不是抛出异常，允许应用在没有 MinIO 的情况下启动
+            return null;
         }
     }
 }

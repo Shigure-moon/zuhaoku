@@ -21,11 +21,16 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class MinIOServiceImpl implements MinIOService {
 
-    private final MinioClient minioClient;
+    private final MinioClient minioClient; // 可能为 null（如果配置不存在）
     private final MinIOProperties minIOProperties;
 
     @Override
     public String uploadFile(String objectName, InputStream inputStream, String contentType) {
+        if (minioClient == null) {
+            log.warn("MinIO 客户端未配置，无法上传文件: {}", objectName);
+            throw new RuntimeException("MinIO 服务未配置，无法上传文件");
+        }
+        
         try {
             // 上传文件
             minioClient.putObject(
@@ -47,6 +52,11 @@ public class MinIOServiceImpl implements MinIOService {
 
     @Override
     public void deleteFile(String objectName) {
+        if (minioClient == null) {
+            log.warn("MinIO 客户端未配置，无法删除文件: {}", objectName);
+            throw new RuntimeException("MinIO 服务未配置，无法删除文件");
+        }
+        
         try {
             minioClient.removeObject(
                     RemoveObjectArgs.builder()
@@ -63,6 +73,11 @@ public class MinIOServiceImpl implements MinIOService {
 
     @Override
     public String getFileUrl(String objectName) {
+        if (minioClient == null) {
+            log.warn("MinIO 客户端未配置，无法获取文件URL: {}", objectName);
+            throw new RuntimeException("MinIO 服务未配置，无法获取文件URL");
+        }
+        
         try {
             // 生成预签名URL，有效期7天
             String url = minioClient.getPresignedObjectUrl(
@@ -82,6 +97,11 @@ public class MinIOServiceImpl implements MinIOService {
 
     @Override
     public boolean fileExists(String objectName) {
+        if (minioClient == null) {
+            log.warn("MinIO 客户端未配置，无法检查文件存在性: {}", objectName);
+            return false;
+        }
+        
         try {
             minioClient.statObject(
                     StatObjectArgs.builder()
