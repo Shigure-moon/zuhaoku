@@ -34,23 +34,44 @@ public class AlipayClientConfig {
             throw new IllegalStateException("支付宝私钥未配置");
         }
         
+        // 验证私钥格式
+        String privateKeyRaw = alipayProperties.getPrivateKey();
+        if (!privateKeyRaw.contains("BEGIN PRIVATE KEY") || !privateKeyRaw.contains("END PRIVATE KEY")) {
+            log.error("支付宝私钥格式错误！私钥必须包含 BEGIN PRIVATE KEY 和 END PRIVATE KEY 标记");
+            log.error("私钥内容预览（前100字符）: {}", 
+                    privateKeyRaw.length() > 100 ? privateKeyRaw.substring(0, 100) + "..." : privateKeyRaw);
+            throw new IllegalStateException("支付宝私钥格式错误");
+        }
+        
         if (alipayProperties.getAlipayPublicKey() == null || alipayProperties.getAlipayPublicKey().isEmpty()) {
             log.error("支付宝公钥未配置！请检查配置：zhk.alipay.alipay-public-key");
             throw new IllegalStateException("支付宝公钥未配置");
         }
         
+        // 验证公钥格式
+        String publicKeyRaw = alipayProperties.getAlipayPublicKey();
+        if (!publicKeyRaw.contains("BEGIN PUBLIC KEY") || !publicKeyRaw.contains("END PUBLIC KEY")) {
+            log.error("支付宝公钥格式错误！公钥必须包含 BEGIN PUBLIC KEY 和 END PUBLIC KEY 标记");
+            throw new IllegalStateException("支付宝公钥格式错误");
+        }
+        
+        // 清理私钥格式（去除可能的额外空格和换行）
+        String privateKey = cleanPrivateKey(alipayProperties.getPrivateKey());
+        String alipayPublicKey = cleanPublicKey(alipayProperties.getAlipayPublicKey());
+        
         log.info("支付宝客户端配置验证通过: appId={}, gatewayUrl={}, signType={}", 
                 alipayProperties.getAppId(), 
                 alipayProperties.getGatewayUrl(),
                 alipayProperties.getSignType());
+        log.debug("私钥长度: {}, 公钥长度: {}", privateKey.length(), alipayPublicKey.length());
         
         AlipayClient client = new DefaultAlipayClient(
                 alipayProperties.getGatewayUrl(),
                 alipayProperties.getAppId(),
-                alipayProperties.getPrivateKey(),
+                privateKey,
                 "json",
                 alipayProperties.getCharset(),
-                alipayProperties.getAlipayPublicKey(),
+                alipayPublicKey,
                 alipayProperties.getSignType()
         );
 
@@ -58,6 +79,47 @@ public class AlipayClientConfig {
                 alipayProperties.getAppId(), alipayProperties.getGatewayUrl());
         
         return client;
+    }
+    
+    /**
+     * 清理私钥格式
+     * 确保私钥格式正确，去除多余的空格和换行
+     */
+    private String cleanPrivateKey(String privateKey) {
+        if (privateKey == null) {
+            return null;
+        }
+        // 去除首尾空白
+        privateKey = privateKey.trim();
+        // 如果已经包含 BEGIN/END 标记，直接返回
+        if (privateKey.contains("BEGIN PRIVATE KEY") && privateKey.contains("END PRIVATE KEY")) {
+            return privateKey;
+        }
+        // 如果没有标记，添加标记（这种情况不应该发生，但为了安全）
+        if (!privateKey.startsWith("-----BEGIN")) {
+            return "-----BEGIN PRIVATE KEY-----\n" + privateKey + "\n-----END PRIVATE KEY-----";
+        }
+        return privateKey;
+    }
+    
+    /**
+     * 清理公钥格式
+     */
+    private String cleanPublicKey(String publicKey) {
+        if (publicKey == null) {
+            return null;
+        }
+        // 去除首尾空白
+        publicKey = publicKey.trim();
+        // 如果已经包含 BEGIN/END 标记，直接返回
+        if (publicKey.contains("BEGIN PUBLIC KEY") && publicKey.contains("END PUBLIC KEY")) {
+            return publicKey;
+        }
+        // 如果没有标记，添加标记
+        if (!publicKey.startsWith("-----BEGIN")) {
+            return "-----BEGIN PUBLIC KEY-----\n" + publicKey + "\n-----END PUBLIC KEY-----";
+        }
+        return publicKey;
     }
 }
 
