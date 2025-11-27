@@ -39,11 +39,19 @@ COPY backend/ backend/
 
 # 直接构建应用（跳过依赖预下载步骤，Maven 会在构建时自动下载）
 # 使用批处理模式，设置超时和重试
+# 确保构建可执行的 Spring Boot JAR
 RUN mvn clean package -DskipTests -f backend/pom.xml \
     -B \
     -Dmaven.wagon.http.retryHandler.count=5 \
     -Dmaven.wagon.httpconnectionManager.ttlSeconds=120 \
-    -Dmaven.wagon.http.readTimeout=300000
+    -Dmaven.wagon.http.readTimeout=300000 \
+    -pl zhk-monolith/zhk-user \
+    -am
+
+# 验证 JAR 文件是否正确构建
+RUN ls -lh /app/backend/zhk-monolith/zhk-user/target/*.jar && \
+    jar tf /app/backend/zhk-monolith/zhk-user/target/zhk-user-1.0.0-SNAPSHOT.jar | grep -E "(META-INF/MANIFEST.MF|com/zhk/user/ZhkUserApplication)" || \
+    (echo "JAR 文件验证失败" && exit 1)
 
 # 阶段2: 运行阶段
 FROM eclipse-temurin:17-jre-alpine
