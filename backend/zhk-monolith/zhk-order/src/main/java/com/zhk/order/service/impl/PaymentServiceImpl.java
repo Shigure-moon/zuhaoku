@@ -93,20 +93,23 @@ public class PaymentServiceImpl implements PaymentService {
         // 根据支付方式调用不同的支付服务
         if ("alipay".equals(dto.getPaymentType())) {
             // 调用支付宝支付服务
-            try {
-                PaymentVO result = alipayPaymentService.createPayment(userId, dto);
-                // 确保返回的 PaymentVO 有支付URL
-                if (result != null && (result.getPaymentUrl() == null || result.getPaymentUrl().isEmpty())) {
-                    result.setPaymentUrl("/pay/" + payment.getId());
-                }
-                return result;
-            } catch (Exception e) {
-                log.error("创建支付宝支付失败", e);
-                // 如果支付宝服务不可用，返回测试支付页面
-                PaymentVO vo = convertToVO(payment);
-                vo.setPaymentUrl("/pay/" + payment.getId());
-                return vo;
+            PaymentVO result = alipayPaymentService.createPayment(userId, dto);
+            // 验证返回结果
+            if (result == null) {
+                throw new BusinessException(500, "支付宝支付创建失败：返回结果为空");
             }
+            if (result.getPaymentUrl() == null || result.getPaymentUrl().isEmpty()) {
+                log.error("支付宝支付URL为空: paymentId={}", payment.getId());
+                throw new BusinessException(500, "支付宝支付URL生成失败");
+            }
+            // 验证支付URL是否是真实的支付宝URL
+            if (result.getPaymentUrl().startsWith("/pay/")) {
+                log.warn("支付宝返回了测试支付页面URL，可能是配置问题: paymentId={}", payment.getId());
+                throw new BusinessException(500, "支付宝支付配置错误，返回了测试支付页面");
+            }
+            log.info("支付宝支付创建成功: paymentId={}, paymentUrl长度={}", 
+                    payment.getId(), result.getPaymentUrl().length());
+            return result;
         } else if ("wechat".equals(dto.getPaymentType())) {
             // TODO: 调用微信支付服务
             PaymentVO vo = convertToVO(payment);

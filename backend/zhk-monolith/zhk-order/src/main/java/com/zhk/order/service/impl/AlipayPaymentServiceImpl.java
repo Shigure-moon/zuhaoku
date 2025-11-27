@@ -78,25 +78,37 @@ public class AlipayPaymentServiceImpl implements AlipayPaymentService {
         // 查询或创建支付记录
         PaymentRecord payment = getOrCreatePayment(dto.getOrderId(), order);
 
+        // 检查支付宝客户端是否可用
+        if (alipayClient == null) {
+            log.error("支付宝客户端未配置！请检查配置：zhk.alipay.app-id 是否已设置");
+            throw new BusinessException(500, "支付宝支付服务未配置，请联系管理员");
+        }
+
+        // 检查配置是否可用
+        if (alipayProperties == null) {
+            log.error("支付宝配置属性未加载！请检查 AlipayProperties 配置");
+            throw new BusinessException(500, "支付宝支付配置错误，请联系管理员");
+        }
+        
+        if (alipayProperties.getAppId() == null || alipayProperties.getAppId().isEmpty()) {
+            log.error("支付宝 AppID 未配置！请检查配置：zhk.alipay.app-id");
+            throw new BusinessException(500, "支付宝 AppID 未配置，请联系管理员");
+        }
+        
+        if (alipayProperties.getPrivateKey() == null || alipayProperties.getPrivateKey().isEmpty()) {
+            log.error("支付宝私钥未配置！请检查配置：zhk.alipay.private-key");
+            throw new BusinessException(500, "支付宝私钥未配置，请联系管理员");
+        }
+        
+        if (alipayProperties.getAlipayPublicKey() == null || alipayProperties.getAlipayPublicKey().isEmpty()) {
+            log.error("支付宝公钥未配置！请检查配置：zhk.alipay.alipay-public-key");
+            throw new BusinessException(500, "支付宝公钥未配置，请联系管理员");
+        }
+
+        log.info("开始创建支付宝支付: orderId={}, amount={}, transactionId={}", 
+                order.getId(), order.getAmount().add(order.getDeposit()), payment.getTransactionId());
+
         try {
-            // 检查支付宝客户端是否可用
-            if (alipayClient == null) {
-                log.warn("支付宝客户端未配置，使用测试支付页面");
-                PaymentVO vo = new PaymentVO();
-                BeanUtils.copyProperties(payment, vo);
-                vo.setPaymentUrl("/pay/" + payment.getId());
-                return vo;
-            }
-
-            // 检查配置是否可用
-            if (alipayProperties == null || alipayProperties.getAppId() == null) {
-                log.warn("支付宝配置未完成，使用测试支付页面");
-                PaymentVO vo = new PaymentVO();
-                BeanUtils.copyProperties(payment, vo);
-                vo.setPaymentUrl("/pay/" + payment.getId());
-                return vo;
-            }
-
             // 创建支付请求
             AlipayTradePagePayRequest request = new AlipayTradePagePayRequest();
 
@@ -112,36 +124,33 @@ public class AlipayPaymentServiceImpl implements AlipayPaymentService {
             request.setNotifyUrl(alipayProperties.getNotifyUrl());
             request.setReturnUrl(alipayProperties.getReturnUrl());
 
+            log.debug("调用支付宝接口: gatewayUrl={}, appId={}, notifyUrl={}, returnUrl={}", 
+                    alipayProperties.getGatewayUrl(), 
+                    alipayProperties.getAppId(),
+                    alipayProperties.getNotifyUrl(),
+                    alipayProperties.getReturnUrl());
+
             // 调用接口
             AlipayTradePagePayResponse response = alipayClient.pageExecute(request);
 
             if (response.isSuccess()) {
+                log.info("支付宝支付创建成功: transactionId={}, response={}", 
+                        payment.getTransactionId(), response.getBody().substring(0, Math.min(200, response.getBody().length())));
                 PaymentVO vo = new PaymentVO();
                 BeanUtils.copyProperties(payment, vo);
                 vo.setPaymentUrl(response.getBody()); // 返回支付表单HTML
                 return vo;
             } else {
-                log.error("支付宝支付创建失败: {}", response.getSubMsg());
-                // 如果支付宝调用失败，返回测试支付页面
-                PaymentVO vo = new PaymentVO();
-                BeanUtils.copyProperties(payment, vo);
-                vo.setPaymentUrl("/pay/" + payment.getId());
-                return vo;
+                log.error("支付宝支付创建失败: code={}, msg={}, subCode={}, subMsg={}", 
+                        response.getCode(), response.getMsg(), response.getSubCode(), response.getSubMsg());
+                throw new BusinessException(500, "支付宝支付创建失败: " + response.getSubMsg());
             }
         } catch (AlipayApiException e) {
-            log.error("调用支付宝接口失败", e);
-            // 如果支付宝调用失败，返回测试支付页面
-            PaymentVO vo = new PaymentVO();
-            BeanUtils.copyProperties(payment, vo);
-            vo.setPaymentUrl("/pay/" + payment.getId());
-            return vo;
+            log.error("调用支付宝接口异常: code={}, msg={}", e.getErrCode(), e.getErrMsg(), e);
+            throw new BusinessException(500, "调用支付宝接口失败: " + e.getErrMsg());
         } catch (Exception e) {
             log.error("创建支付时发生未知异常", e);
-            // 如果发生其他异常，返回测试支付页面
-            PaymentVO vo = new PaymentVO();
-            BeanUtils.copyProperties(payment, vo);
-            vo.setPaymentUrl("/pay/" + payment.getId());
-            return vo;
+            throw new BusinessException(500, "创建支付失败: " + e.getMessage());
         }
     }
 
