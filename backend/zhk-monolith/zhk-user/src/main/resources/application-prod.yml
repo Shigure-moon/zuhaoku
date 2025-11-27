@@ -32,9 +32,16 @@ spring:
       max-lifetime: 1800000
 
   # Redis 配置（可选，如果不配置则禁用 Redis 相关功能）
+  # 注意：如果 REDIS_HOST 为空，需要排除 Redis 自动配置
+  autoconfigure:
+    exclude:
+      - org.springframework.boot.autoconfigure.data.redis.RedisAutoConfiguration
+      - org.springframework.boot.autoconfigure.data.redis.RedisRepositoriesAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.data.redis.RedisHealthContributorAutoConfiguration
+      - org.springframework.boot.actuate.autoconfigure.data.redis.RedisReactiveHealthContributorAutoConfiguration
   data:
     redis:
-      # 如果 REDIS_HOST 为空，Spring Boot 不会自动配置 Redis
+      # 如果 REDIS_HOST 为空，上面的 exclude 会禁用 Redis 自动配置
       host: ${REDIS_HOST:}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
