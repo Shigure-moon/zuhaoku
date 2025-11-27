@@ -50,8 +50,7 @@ mybatis-plus:
   type-aliases-package: com.zhk.**.entity
   configuration:
     map-underscore-to-camel-case: true
-    # 生产环境关闭 SQL 日志（注释掉 log-impl，使用默认配置）
-    # log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl
+    # 生产环境通过日志级别控制 SQL 日志，不在这里配置 log-impl
   global-config:
     db-config:
       id-type: auto
@@ -99,6 +98,9 @@ logging:
     com.zhk: INFO
     org.springframework.security: WARN
     org.springframework.web: INFO
+    # 关闭 MyBatis SQL 日志
+    com.baomidou.mybatisplus: WARN
+    org.apache.ibatis: WARN
   pattern:
     console: "%d{yyyy-MM-dd HH:mm:ss} - %msg%n"
     file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
