@@ -30,6 +30,10 @@ spring:
       connection-timeout: 30000
       idle-timeout: 600000
       max-lifetime: 1800000
+      # 增加查询超时时间，避免长时间查询导致连接失败
+      data-source-properties:
+        socketTimeout: 60000
+        connectTimeout: 30000
 
   # Redis 配置（可选，如果不配置则禁用 Redis 相关功能）
   # 注意：如果 REDIS_HOST 为空，需要排除 Redis 自动配置

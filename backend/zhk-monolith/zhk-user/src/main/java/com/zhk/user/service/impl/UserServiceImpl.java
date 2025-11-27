@@ -34,28 +34,48 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public UserVO register(RegisterDTO dto) {
-        // 检查手机号是否已注册
-        LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
-        wrapper.eq(User::getMobile, dto.getMobile());
-        if (userMapper.selectCount(wrapper) > 0) {
-            throw new BusinessException(400, "手机号已注册");
+        log.info("开始用户注册: mobile={}, nickname={}", dto.getMobile(), dto.getNickname());
+        
+        try {
+            // 检查手机号是否已注册
+            LambdaQueryWrapper<User> wrapper = new LambdaQueryWrapper<>();
+            wrapper.eq(User::getMobile, dto.getMobile());
+            long count = userMapper.selectCount(wrapper);
+            log.debug("手机号查询结果: count={}", count);
+            
+            if (count > 0) {
+                log.warn("注册失败：手机号已注册, mobile={}", dto.getMobile());
+                throw new BusinessException(400, "手机号已注册");
+            }
+
+            // TODO: 验证码校验（暂时跳过，生产环境需要实现）
+            if (dto.getVerifyCode() != null && !dto.getVerifyCode().isEmpty()) {
+                log.debug("验证码已提供，但暂未实现验证逻辑");
+                // 未来实现验证码验证逻辑
+            }
+
+            // 创建用户
+            User user = new User();
+            user.setMobile(dto.getMobile());
+            user.setPassword(passwordEncoder.encode(dto.getPassword()));
+            user.setNickname(dto.getNickname());
+            user.setRole("TENANT");
+            user.setStatus(1);
+
+            userMapper.insert(user);
+            log.info("用户注册成功: userId={}, mobile={}", user.getId(), user.getMobile());
+
+            // 转换为 VO
+            UserVO vo = new UserVO();
+            BeanUtils.copyProperties(user, vo);
+            vo.setUserId(user.getId());
+            return vo;
+        } catch (BusinessException e) {
+            throw e;
+        } catch (Exception e) {
+            log.error("用户注册失败", e);
+            throw new BusinessException(500, "注册失败: " + e.getMessage());
         }
-
-        // 创建用户
-        User user = new User();
-        user.setMobile(dto.getMobile());
-        user.setPassword(passwordEncoder.encode(dto.getPassword()));
-        user.setNickname(dto.getNickname());
-        user.setRole("TENANT");
-        user.setStatus(1);
-
-        userMapper.insert(user);
-
-        // 转换为 VO
-        UserVO vo = new UserVO();
-        BeanUtils.copyProperties(user, vo);
-        vo.setUserId(user.getId());
-        return vo;
     }
 
     @Override

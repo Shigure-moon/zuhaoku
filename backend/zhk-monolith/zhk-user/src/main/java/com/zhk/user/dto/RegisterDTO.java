@@ -22,7 +22,8 @@ public class RegisterDTO {
     @NotBlank(message = "昵称不能为空")
     private String nickname;
 
-    @NotBlank(message = "验证码不能为空")
+    // 验证码暂时设为可选（开发环境），生产环境需要实现验证码功能
+    // @NotBlank(message = "验证码不能为空")
     private String verifyCode;
 }
 
