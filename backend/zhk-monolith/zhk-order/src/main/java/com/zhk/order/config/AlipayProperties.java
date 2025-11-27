@@ -1,6 +1,8 @@
 package com.zhk.order.config;
 
+import jakarta.annotation.PostConstruct;
 import lombok.Data;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
@@ -9,6 +11,7 @@ import org.springframework.stereotype.Component;
  *
  * @author shigure
  */
+@Slf4j
 @Data
 @Component
 @ConfigurationProperties(prefix = "zhk.alipay")
@@ -57,5 +60,44 @@ public class AlipayProperties {
      * 字符编码
      */
     private String charset = "UTF-8";
+    
+    /**
+     * 配置加载后验证
+     */
+    @PostConstruct
+    public void validate() {
+        log.info("支付宝配置加载验证: appId={}, gatewayUrl={}", appId, gatewayUrl);
+        
+        if (privateKey != null) {
+            log.debug("私钥长度: {}, 前50字符: {}", 
+                    privateKey.length(), 
+                    privateKey.length() > 50 ? privateKey.substring(0, 50) + "..." : privateKey);
+            
+            // 验证私钥格式
+            if (!privateKey.contains("BEGIN PRIVATE KEY")) {
+                log.error("⚠️ 私钥格式错误！私钥内容前100字符: {}", 
+                        privateKey.length() > 100 ? privateKey.substring(0, 100) : privateKey);
+            } else {
+                log.info("✅ 私钥格式验证通过");
+            }
+        } else {
+            log.warn("⚠️ 私钥未配置");
+        }
+        
+        if (alipayPublicKey != null) {
+            log.debug("公钥长度: {}, 前50字符: {}", 
+                    alipayPublicKey.length(), 
+                    alipayPublicKey.length() > 50 ? alipayPublicKey.substring(0, 50) + "..." : alipayPublicKey);
+            
+            if (!alipayPublicKey.contains("BEGIN PUBLIC KEY")) {
+                log.error("⚠️ 公钥格式错误！公钥内容前100字符: {}", 
+                        alipayPublicKey.length() > 100 ? alipayPublicKey.substring(0, 100) : alipayPublicKey);
+            } else {
+                log.info("✅ 公钥格式验证通过");
+            }
+        } else {
+            log.warn("⚠️ 公钥未配置");
+        }
+    }
 }
 

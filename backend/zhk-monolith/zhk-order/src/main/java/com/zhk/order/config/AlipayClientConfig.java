@@ -59,26 +59,62 @@ public class AlipayClientConfig {
         String privateKey = cleanPrivateKey(alipayProperties.getPrivateKey());
         String alipayPublicKey = cleanPublicKey(alipayProperties.getAlipayPublicKey());
         
+        // 验证清理后的私钥
+        if (privateKey == null || privateKey.isEmpty()) {
+            log.error("清理后的私钥为空！");
+            throw new IllegalStateException("私钥清理失败");
+        }
+        
+        if (!privateKey.contains("BEGIN PRIVATE KEY") || !privateKey.contains("END PRIVATE KEY")) {
+            log.error("清理后的私钥格式仍然错误！");
+            log.error("私钥前200字符: {}", privateKey.length() > 200 ? privateKey.substring(0, 200) : privateKey);
+            throw new IllegalStateException("私钥格式错误");
+        }
+        
         log.info("支付宝客户端配置验证通过: appId={}, gatewayUrl={}, signType={}", 
                 alipayProperties.getAppId(), 
                 alipayProperties.getGatewayUrl(),
                 alipayProperties.getSignType());
-        log.debug("私钥长度: {}, 公钥长度: {}", privateKey.length(), alipayPublicKey.length());
         
-        AlipayClient client = new DefaultAlipayClient(
-                alipayProperties.getGatewayUrl(),
-                alipayProperties.getAppId(),
-                privateKey,
-                "json",
-                alipayProperties.getCharset(),
-                alipayPublicKey,
-                alipayProperties.getSignType()
-        );
-
-        log.info("✅ 支付宝客户端初始化成功: appId={}, gatewayUrl={}", 
-                alipayProperties.getAppId(), alipayProperties.getGatewayUrl());
+        // 详细验证私钥内容
+        log.info("私钥验证: 长度={}, 包含BEGIN={}, 包含END={}", 
+                privateKey.length(),
+                privateKey.contains("BEGIN PRIVATE KEY"),
+                privateKey.contains("END PRIVATE KEY"));
+        log.info("私钥前80字符: {}", privateKey.substring(0, Math.min(80, privateKey.length())));
+        log.info("私钥后80字符: {}", privateKey.length() > 80 ? 
+                "..." + privateKey.substring(privateKey.length() - 80) : privateKey);
         
-        return client;
+        // 验证私钥不是请求参数（关键检查）
+        if (privateKey.contains("alipay_sdk=") || privateKey.contains("app_id=") || privateKey.contains("biz_content=")) {
+            log.error("❌ 严重错误：私钥内容被替换成了请求参数！");
+            log.error("私钥实际内容: {}", privateKey);
+            throw new IllegalStateException("私钥配置错误：私钥内容被替换成了请求参数，请检查配置文件");
+        }
+        
+        log.info("公钥长度: {}", alipayPublicKey.length());
+        
+        try {
+            log.info("准备创建支付宝客户端，使用私钥长度: {}", privateKey.length());
+            AlipayClient client = new DefaultAlipayClient(
+                    alipayProperties.getGatewayUrl(),
+                    alipayProperties.getAppId(),
+                    privateKey,
+                    "json",
+                    alipayProperties.getCharset(),
+                    alipayPublicKey,
+                    alipayProperties.getSignType()
+            );
+            
+            log.info("✅ 支付宝客户端初始化成功: appId={}, gatewayUrl={}", 
+                    alipayProperties.getAppId(), alipayProperties.getGatewayUrl());
+            
+            return client;
+        } catch (Exception e) {
+            log.error("创建支付宝客户端失败", e);
+            log.error("使用的私钥前100字符: {}", privateKey.substring(0, Math.min(100, privateKey.length())));
+            throw new IllegalStateException("创建支付宝客户端失败: " + e.getMessage(), e);
+        }
     }
     
     /**
