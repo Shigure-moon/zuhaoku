@@ -16,43 +16,43 @@ import org.springframework.context.annotation.Configuration;
 @Slf4j
 @Configuration
 @RequiredArgsConstructor
-@ConditionalOnProperty(prefix = "zhk.alipay", name = "app-id")
+// 移除 @ConditionalOnProperty，允许配置类始终创建，但客户端可能为 null
 public class AlipayClientConfig {
 
     private final AlipayProperties alipayProperties;
 
     @Bean
     public AlipayClient alipayClient() {
-        // 验证配置
+        // 验证配置 - 如果配置不完整，返回 null（不创建客户端）
         if (alipayProperties.getAppId() == null || alipayProperties.getAppId().isEmpty()) {
-            log.error("支付宝 AppID 未配置！请检查配置：zhk.alipay.app-id");
-            throw new IllegalStateException("支付宝 AppID 未配置");
+            log.warn("支付宝 AppID 未配置，支付宝支付功能将不可用。请检查配置：zhk.alipay.app-id");
+            return null;
         }
         
         if (alipayProperties.getPrivateKey() == null || alipayProperties.getPrivateKey().isEmpty()) {
-            log.error("支付宝私钥未配置！请检查配置：zhk.alipay.private-key");
-            throw new IllegalStateException("支付宝私钥未配置");
+            log.warn("支付宝私钥未配置，支付宝支付功能将不可用。请检查配置：zhk.alipay.private-key");
+            return null;
         }
         
         // 验证私钥格式
         String privateKeyRaw = alipayProperties.getPrivateKey();
         if (!privateKeyRaw.contains("BEGIN PRIVATE KEY") || !privateKeyRaw.contains("END PRIVATE KEY")) {
-            log.error("支付宝私钥格式错误！私钥必须包含 BEGIN PRIVATE KEY 和 END PRIVATE KEY 标记");
-            log.error("私钥内容预览（前100字符）: {}", 
+            log.warn("支付宝私钥格式错误，支付宝支付功能将不可用。私钥必须包含 BEGIN PRIVATE KEY 和 END PRIVATE KEY 标记");
+            log.warn("私钥内容预览（前100字符）: {}", 
                     privateKeyRaw.length() > 100 ? privateKeyRaw.substring(0, 100) + "..." : privateKeyRaw);
-            throw new IllegalStateException("支付宝私钥格式错误");
+            return null;
         }
         
         if (alipayProperties.getAlipayPublicKey() == null || alipayProperties.getAlipayPublicKey().isEmpty()) {
-            log.error("支付宝公钥未配置！请检查配置：zhk.alipay.alipay-public-key");
-            throw new IllegalStateException("支付宝公钥未配置");
+            log.warn("支付宝公钥未配置，支付宝支付功能将不可用。请检查配置：zhk.alipay.alipay-public-key");
+            return null;
         }
         
         // 验证公钥格式
         String publicKeyRaw = alipayProperties.getAlipayPublicKey();
         if (!publicKeyRaw.contains("BEGIN PUBLIC KEY") || !publicKeyRaw.contains("END PUBLIC KEY")) {
-            log.error("支付宝公钥格式错误！公钥必须包含 BEGIN PUBLIC KEY 和 END PUBLIC KEY 标记");
-            throw new IllegalStateException("支付宝公钥格式错误");
+            log.warn("支付宝公钥格式错误，支付宝支付功能将不可用。公钥必须包含 BEGIN PUBLIC KEY 和 END PUBLIC KEY 标记");
+            return null;
         }
         
         // 清理私钥格式（去除可能的额外空格和换行）
@@ -111,9 +111,10 @@ public class AlipayClientConfig {
             
             return client;
         } catch (Exception e) {
-            log.error("创建支付宝客户端失败", e);
+            log.error("创建支付宝客户端失败，支付宝支付功能将不可用", e);
             log.error("使用的私钥前100字符: {}", privateKey.substring(0, Math.min(100, privateKey.length())));
-            throw new IllegalStateException("创建支付宝客户端失败: " + e.getMessage(), e);
+            // 返回 null 而不是抛出异常，允许应用在没有支付宝的情况下启动
+            return null;
         }
     }
     
