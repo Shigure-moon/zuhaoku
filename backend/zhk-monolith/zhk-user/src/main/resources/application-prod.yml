@@ -50,8 +50,8 @@ mybatis-plus:
   type-aliases-package: com.zhk.**.entity
   configuration:
     map-underscore-to-camel-case: true
-    # 生产环境关闭 SQL 日志
-    log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl
+    # 生产环境关闭 SQL 日志（注释掉 log-impl，使用默认配置）
+    # log-impl: org.apache.ibatis.logging.nop.NoLoggingImpl
   global-config:
     db-config:
       id-type: auto
