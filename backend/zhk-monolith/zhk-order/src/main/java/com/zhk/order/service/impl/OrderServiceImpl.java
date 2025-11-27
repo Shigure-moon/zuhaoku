@@ -25,6 +25,8 @@ import com.zhk.order.util.DistributedLock;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeanUtils;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -53,17 +55,32 @@ public class OrderServiceImpl implements OrderService {
     private final AppealMapper appealMapper;
     private final PaymentRecordMapper paymentRecordMapper;
     private final EncryptionService encryptionService;
-    private final DistributedLock distributedLock;
+    
+    @Autowired(required = false)
+    private DistributedLock distributedLock; // Redis 不可用时为 null
 
     @Override
     @Transactional
     public OrderVO createOrder(Long userId, CreateOrderDTO dto) {
-        // 使用分布式锁防止重复下单
-        String lockKey = "order:create:" + dto.getAccountId() + ":" + userId;
-        
-        return distributedLock.executeWithLock(lockKey, 3, 10, () -> {
-            // 查询账号
-            Account account = accountMapper.selectById(dto.getAccountId());
+        // 使用分布式锁防止重复下单（如果 Redis 可用）
+        if (distributedLock != null) {
+            String lockKey = "order:create:" + dto.getAccountId() + ":" + userId;
+            return distributedLock.executeWithLock(lockKey, 3, 10, () -> {
+                return createOrderInternal(userId, dto);
+            });
+        } else {
+            // Redis 不可用时，直接执行（不保证分布式一致性）
+            log.warn("Redis 不可用，跳过分布式锁，直接创建订单");
+            return createOrderInternal(userId, dto);
+        }
+    }
+    
+    /**
+     * 创建订单的内部实现
+     */
+    private OrderVO createOrderInternal(Long userId, CreateOrderDTO dto) {
+        // 查询账号
+        Account account = accountMapper.selectById(dto.getAccountId());
             if (account == null) {
                 throw new BusinessException(404, "账号不存在");
             }
@@ -122,9 +139,8 @@ public class OrderServiceImpl implements OrderService {
             // 注意：创建订单时账号状态暂时不变，等支付完成后再改为租赁中
             // 这样可以避免未支付订单占用账号资源
 
-            // 转换为 VO
-            return convertToVO(order);
-        });
+        // 转换为 VO
+        return convertToVO(order);
     }
 
     @Override

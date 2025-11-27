@@ -2,6 +2,7 @@ package com.zhk.order.util;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.data.redis.core.StringRedisTemplate;
 import org.springframework.stereotype.Component;
 
@@ -10,11 +11,13 @@ import java.util.concurrent.TimeUnit;
 /**
  * 分布式锁工具类
  * 基于 Redis 实现简单的分布式锁
+ * 如果 Redis 不可用，则降级为本地锁（不保证分布式一致性）
  *
  * @author shigure
  */
 @Slf4j
 @Component
+@ConditionalOnBean(StringRedisTemplate.class)
 @RequiredArgsConstructor
 public class DistributedLock {
 

@@ -68,35 +68,35 @@ public class AlipayProperties {
     public void validate() {
         log.info("支付宝配置加载验证: appId={}, gatewayUrl={}", appId, gatewayUrl);
         
-        if (privateKey != null) {
+        if (privateKey != null && !privateKey.isEmpty()) {
             log.debug("私钥长度: {}, 前50字符: {}", 
                     privateKey.length(), 
                     privateKey.length() > 50 ? privateKey.substring(0, 50) + "..." : privateKey);
             
             // 验证私钥格式
             if (!privateKey.contains("BEGIN PRIVATE KEY")) {
-                log.error("⚠️ 私钥格式错误！私钥内容前100字符: {}", 
+                log.warn("⚠️ 私钥格式可能错误！私钥内容前100字符: {}", 
                         privateKey.length() > 100 ? privateKey.substring(0, 100) : privateKey);
             } else {
                 log.info("✅ 私钥格式验证通过");
             }
         } else {
-            log.warn("⚠️ 私钥未配置");
+            log.warn("⚠️ 私钥未配置（支付宝支付功能将不可用）");
         }
         
-        if (alipayPublicKey != null) {
+        if (alipayPublicKey != null && !alipayPublicKey.isEmpty()) {
             log.debug("公钥长度: {}, 前50字符: {}", 
                     alipayPublicKey.length(), 
                     alipayPublicKey.length() > 50 ? alipayPublicKey.substring(0, 50) + "..." : alipayPublicKey);
             
             if (!alipayPublicKey.contains("BEGIN PUBLIC KEY")) {
-                log.error("⚠️ 公钥格式错误！公钥内容前100字符: {}", 
+                log.warn("⚠️ 公钥格式可能错误！公钥内容前100字符: {}", 
                         alipayPublicKey.length() > 100 ? alipayPublicKey.substring(0, 100) : alipayPublicKey);
             } else {
                 log.info("✅ 公钥格式验证通过");
             }
         } else {
-            log.warn("⚠️ 公钥未配置");
+            log.warn("⚠️ 公钥未配置（支付宝支付功能将不可用）");
         }
     }
 }

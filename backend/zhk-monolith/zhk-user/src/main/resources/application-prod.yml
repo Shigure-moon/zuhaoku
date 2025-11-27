@@ -31,9 +31,10 @@ spring:
       idle-timeout: 600000
       max-lifetime: 1800000
 
-  # Redis 配置（如果使用）
+  # Redis 配置（可选，如果不配置则禁用 Redis 相关功能）
   data:
     redis:
+      # 如果 REDIS_HOST 为空，Spring Boot 不会自动配置 Redis
       host: ${REDIS_HOST:}
       port: ${REDIS_PORT:6379}
       password: ${REDIS_PASSWORD:}
