@@ -48,7 +48,20 @@ MINIO_ENDPOINT=http://your-minio-endpoint:9000
 MINIO_ACCESS_KEY=your-access-key
 MINIO_SECRET_KEY=your-secret-key
 MINIO_BUCKET=zhk-evidence
+
+# 支付宝配置（如果使用）
+ALIPAY_APP_ID=2021006112616763
+ALIPAY_PRIVATE_KEY=-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----
+ALIPAY_PUBLIC_KEY=-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----
+ALIPAY_GATEWAY_URL=https://openapi.alipay.com/gateway.do
+ALIPAY_ENCRYPT_KEY=your-encrypt-key
+ALIPAY_NOTIFY_URL=https://zuhaoku.zeabur.app/api/v1/payments/alipay/notify
+ALIPAY_RETURN_URL=https://your-frontend-domain.com/tenant/orders
+ALIPAY_SIGN_TYPE=RSA2
+ALIPAY_CHARSET=UTF-8
 ```
+
+**注意**：支付宝密钥配置请参考 `ALIPAY_SETUP.md` 文档
 
 ### 3. 构建配置
 
