@@ -6,6 +6,7 @@ import io.minio.*;
 import io.minio.errors.*;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.io.InputStream;
@@ -21,7 +22,9 @@ import java.util.concurrent.TimeUnit;
 @RequiredArgsConstructor
 public class MinIOServiceImpl implements MinIOService {
 
-    private final MinioClient minioClient; // 可能为 null（如果配置不存在）
+    @Autowired(required = false)
+    private MinioClient minioClient; // 可能为 null（如果配置不存在）
+    
     private final MinIOProperties minIOProperties;
 
     @Override
